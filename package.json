@@ -1,0 +1,27 @@
+{
+  "name": "stellar-relayer-api",
+  "version": "1.0.0",
+  "description": "Stellar relayer API for PadiPay Web2.5 escrow service",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "keywords": [
+    "padipay",
+    "stellar",
+    "relayer",
+    "soroban"
+  ],
+  "author": "PadiPay",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "stellar-sdk": "^11.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
