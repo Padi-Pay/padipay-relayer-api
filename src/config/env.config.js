@@ -1,26 +1,26 @@
+const { z } = require('zod');
+const ConfigError = require('../errors/ConfigError');
 require('dotenv').config();
 
-const requiredVariables = [
-  'PORT',
-  'RPC_URL',
-  'NETWORK_PASSPHRASE',
-  'CONTRACT_ID',
-  'FEE_BUMP_SECRET_KEY'
-];
+const envSchema = z.object({
+  PORT: z.string().default('3000'),
+  RPC_URL: z.string().url(),
+  NETWORK_PASSPHRASE: z.string().min(1),
+  CONTRACT_ID: z.string().min(1),
+  FEE_BUMP_SECRET_KEY: z.string().min(1),
+});
 
-const missingVariables = requiredVariables.filter(
-  (variable) => !process.env[variable]
-);
+const loadConfig = () => {
+  const parsed = envSchema.safeParse(process.env);
 
-if (missingVariables.length > 0) {
-  console.error(`FATAL ERROR: Missing required environment variables: ${missingVariables.join(', ')}`);
-  process.exit(1);
-}
+  if (!parsed.success) {
+    const errorMessages = parsed.error.issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join(', ');
+    throw new ConfigError(`Invalid environment configuration: ${errorMessages}`);
+  }
 
-module.exports = {
-  PORT: process.env.PORT || 3000,
-  RPC_URL: process.env.RPC_URL,
-  NETWORK_PASSPHRASE: process.env.NETWORK_PASSPHRASE,
-  CONTRACT_ID: process.env.CONTRACT_ID,
-  FEE_BUMP_SECRET_KEY: process.env.FEE_BUMP_SECRET_KEY,
+  return parsed.data;
 };
+
+module.exports = { loadConfig };

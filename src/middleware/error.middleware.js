@@ -1,7 +1,18 @@
+const AppError = require('../errors/AppError');
+
 const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  const error = err.code || 'INTERNAL_ERROR';
+  let statusCode = 500;
+  let message = 'Internal Server Error';
+  let error = 'INTERNAL_ERROR';
+
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    error = err.code;
+  } else {
+    // Log unexpected errors
+    console.error('[UNEXPECTED ERROR]', err);
+  }
 
   const response = {
     success: false,

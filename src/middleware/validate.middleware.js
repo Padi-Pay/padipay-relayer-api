@@ -1,26 +1,26 @@
+const ValidationError = require('../errors/ValidationError');
+
 /**
- * Reusable middleware to validate required fields in the request body.
- * @param {string[]} requiredFields - Array of required field names.
+ * Reusable middleware to validate request against a Zod schema.
+ * @param {z.ZodSchema} schema - The Zod schema to validate against.
  */
-const validateBody = (requiredFields) => {
-  return (req, res, next) => {
-    const missingFields = [];
-
-    requiredFields.forEach((field) => {
-      if (req.body[field] === undefined) {
-        missingFields.push(field);
-      }
+const validate = (schema) => (req, res, next) => {
+  try {
+    schema.parse({
+      body: req.body,
+      query: req.query,
+      params: req.params,
     });
-
-    if (missingFields.length > 0) {
-      const error = new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      error.statusCode = 400;
-      error.code = 'VALIDATION_ERROR';
-      return next(error);
-    }
-
     next();
-  };
+  } catch (error) {
+    if (error.name === 'ZodError') {
+      const errorMessages = error.errors
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      return next(new ValidationError(`Validation failed: ${errorMessages}`));
+    }
+    next(error);
+  }
 };
 
-module.exports = { validateBody };
+module.exports = { validate };
