@@ -1,6 +1,14 @@
-const config = require('./config/env.config');
+const { loadConfig } = require('./config/env.config');
 const express = require('express');
 const relayerRoutes = require('./routes/relayer.routes');
+
+let config;
+try {
+  config = loadConfig();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = config.PORT;
