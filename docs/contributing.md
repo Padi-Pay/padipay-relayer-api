@@ -31,6 +31,8 @@ The relayer follows a few guiding principles.
 * Keep pull requests small and focused.
 * Keep the service modular.
 * Separate routing from business logic.
+* Use Functional Composition (No ES6 Classes).
+* Use Dependency Injection (export services as factory functions).
 * Write tests alongside implementation.
 * Keep documentation in sync with code.
 * Prioritize maintainability over clever implementations.
@@ -194,9 +196,10 @@ Examples include:
 
 ## Validate Every External Input
 
-All incoming requests should be validated before interacting with the Stellar SDK.
+All incoming requests should be strictly validated before reaching the service layer or interacting with the Stellar SDK.
 
-Never assume client input is valid.
+* We use **Zod** as the single source of truth for input validation.
+* Never assume client input is valid.
 
 ---
 
@@ -218,7 +221,9 @@ Always load secrets from environment variables.
 
 Return consistent, descriptive API responses.
 
-Avoid exposing internal implementation details or stack traces to clients.
+* Throw standardized domain errors from `src/errors/` (e.g. `AppError`, `StellarError`, `ValidationError`).
+* Avoid exposing raw Stellar SDK or Soroban RPC implementation details.
+* Never expose stack traces to clients.
 
 
 
@@ -241,6 +246,15 @@ Security improvements are always welcome.
 # Testing Requirements
 
 Every contribution that changes application behavior should include tests.
+
+We use **Jest** as our primary testing framework and **Supertest** for lightweight HTTP integration tests.
+
+Our testing philosophy requires that tests are:
+* Isolated and deterministic.
+* Free from network access.
+* Free from live Stellar infrastructure dependency.
+
+Therefore, you must mock external dependencies such as the Stellar SDK and Soroban RPC server.
 
 At a minimum, test:
 
@@ -319,6 +333,7 @@ Before opening a pull request, verify the following:
 * [ ] Linting passes.
 * [ ] Documentation updated where necessary.
 * [ ] No unrelated changes have been included.
+* [ ] GitHub Actions CI (if running) reports success.
 
 
 

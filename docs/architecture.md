@@ -32,11 +32,13 @@ Business logic remains within the Soroban smart contracts.
 The relayer follows several guiding principles.
 
 * Keep request handlers lightweight.
-* Separate concerns into dedicated services.
-* Validate all external input.
+* Separate concerns into dedicated services using **Dependency Injection** (Factory Functions).
+* **Functional Composition** over ES6 Classes.
+* Validate all external input strictly at the boundary using **Zod**.
 * Never expose sensitive credentials.
 * Keep the service stateless during the MVP.
 * Prefer modular, reusable code.
+* Handle errors gracefully by mapping raw implementation details to standardized domain errors.
 * Make blockchain interactions transparent to clients.
 
 
@@ -117,7 +119,7 @@ Every request follows the same high-level flow.
 Receive Request
        │
        ▼
-Validate Payload
+Validate Payload (Zod)
        │
        ▼
 Construct Soroban Transaction
@@ -130,7 +132,7 @@ Submit to Stellar RPC
        │
        ▼
 Receive Transaction Hash
-       │
+       │ (On Failure: Map to Domain Error)
        ▼
 Return API Response
 ```
@@ -148,10 +150,35 @@ Routes expose the public HTTP API.
 Responsibilities include:
 
 * Receiving requests.
-* Passing validated data to services.
+* Passing validated data to services via Dependency Injection.
 * Returning HTTP responses.
 
 Routes should remain thin and avoid business logic.
+
+---
+
+## Validation Middleware
+
+The Validation layer ensures all incoming request payloads conform to strictly typed schemas before reaching the service layer.
+
+Responsibilities include:
+
+* Validating request bodies and parameters using Zod schemas.
+* Rejecting malformed requests with `VALIDATION_ERROR` responses.
+
+This ensures services only receive guaranteed valid data structures.
+
+---
+
+## Error Handling Middleware
+
+The Error Handling layer centralizes the mapping of exceptions to HTTP responses.
+
+Responsibilities include:
+
+* Catching standardized domain errors (e.g., `AppError`, `StellarError`).
+* Abstracting away raw SDK stack traces and Soroban RPC error payloads.
+* Ensuring the client receives curated, safe JSON error envelopes.
 
 ---
 

@@ -117,6 +117,24 @@ http://localhost:3000
 
 ---
 
+# Running with Docker
+
+Alternatively, you can run the API within a Docker container. Ensure Docker is installed and running on your system.
+
+Build the image:
+
+```bash
+docker build -t padipay-relayer-api .
+```
+
+Run the container, passing the `.env` file:
+
+```bash
+docker run -p 3000:3000 --env-file .env padipay-relayer-api
+```
+
+---
+
 # Verify the Installation
 
 Once the server is running, verify that it starts successfully before testing contract interactions.
@@ -156,7 +174,7 @@ These endpoints demonstrate the complete gasless transaction flow between client
 
 # Running Tests
 
-Execute the project's test suite.
+Execute the project's Jest test suite (with coverage reporting).
 
 ```bash
 npm test

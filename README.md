@@ -59,7 +59,7 @@ The v0.1.0 MVP includes:
 * Transaction submission.
 * Transaction status lookup.
 * Error handling.
-* Unit tests.
+* Unit tests (Jest).
 * Continuous Integration.
 
 Advanced capabilities such as persistence, authentication, retry queues, metrics, and rate limiting are intentionally deferred to future milestones.
@@ -75,6 +75,8 @@ src/
 │   ├── stellar.service.js
 │   └── horizon.service.js
 ├── middleware/
+├── errors/
+├── validation/
 ├── utils/
 └── config/
 ```
@@ -84,6 +86,8 @@ Each layer has a single responsibility.
 * **Routes** expose the public API.
 * **Services** contain business logic.
 * **Middleware** handles request processing.
+* **Validation** ensures input integrity using Zod schemas.
+* **Errors** map raw implementation details to standardized domain errors.
 * **Utilities** contain shared helper functions.
 * **Configuration** manages application settings.
 
@@ -139,6 +143,22 @@ Run the development server.
 npm run dev
 ```
 
+### Running with Docker
+
+Alternatively, you can run the API within a Docker container. Ensure Docker is installed and running on your system.
+
+Build the image:
+
+```bash
+docker build -t padipay-relayer-api .
+```
+
+Run the container, passing the `.env` file:
+
+```bash
+docker run -p 3000:3000 --env-file .env padipay-relayer-api
+```
+
 ## Environment Variables
 
 Typical configuration includes:
@@ -155,13 +175,17 @@ Additional configuration options may be introduced in future releases.
 
 ## Testing
 
-Run the test suite with:
+Run the Jest test suite with coverage reporting:
 
 ```bash
 npm test
 ```
 
 Linting and formatting commands should also pass before opening a pull request.
+
+```bash
+npm run lint
+```
 
 ## Related Repositories
 

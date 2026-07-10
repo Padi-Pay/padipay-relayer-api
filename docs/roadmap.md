@@ -39,50 +39,50 @@ This milestone proves the complete Web2.5 transaction flow.
 
 ## API Foundation
 
-* [ ] Express application structure
-* [ ] Environment configuration
-* [ ] Request validation
-* [ ] Centralized error handling
-* [ ] Health endpoint
+* [x] Express application structure
+* [x] Environment configuration
+* [x] Request validation
+* [x] Centralized error handling
+* [x] Health endpoint
 
 ---
 
 ## Escrow Service
 
-* [ ] Build Soroban contract invocation
-* [ ] Support escrow creation
-* [ ] Support fund locking
-* [ ] Support fund release
-* [ ] Support refunds
+* [x] Build Soroban contract invocation
+* [x] Support escrow creation
+* [x] Support fund locking
+* [x] Support fund release
+* [x] Support refunds
 
 ---
 
 ## Stellar Service
 
-* [ ] Configure Stellar SDK
-* [ ] Build transaction
-* [ ] Create Fee Bump transaction
-* [ ] Sign sponsored transaction
-* [ ] Submit transaction to Stellar RPC
+* [x] Configure Stellar SDK
+* [x] Build transaction
+* [x] Create Fee Bump transaction
+* [x] Sign sponsored transaction
+* [x] Submit transaction to Stellar RPC
 
 ---
 
 ## Transaction Status
 
-* [ ] Query Stellar RPC
-* [ ] Return transaction status
-* [ ] Handle failed transactions
-* [ ] Normalize network responses
+* [x] Query Stellar RPC
+* [x] Return transaction status
+* [x] Handle failed transactions
+* [x] Normalize network responses
 
 ---
 
 ## Developer Experience
 
-* [ ] Unit tests
-* [ ] API documentation
-* [ ] Docker support
-* [ ] GitHub Actions CI
-* [ ] Improved documentation
+* [x] Unit tests
+* [x] API documentation
+* [x] Docker support
+* [x] GitHub Actions CI
+* [x] Improved documentation
 
 
 
