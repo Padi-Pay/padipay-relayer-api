@@ -1,5 +1,4 @@
 const StellarSdk = require('stellar-sdk');
-const ConfigError = require('../errors/ConfigError');
 
 /**
  * Factory function to create a reusable Soroban contract client.

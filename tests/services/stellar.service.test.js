@@ -1,7 +1,6 @@
 const { createStellarService } = require('../../src/services/stellar.service');
 const StellarSdk = require('stellar-sdk');
 const RpcError = require('../../src/errors/RpcError');
-const ConfigError = require('../../src/errors/ConfigError');
 const StellarError = require('../../src/errors/StellarError');
 
 describe('Stellar Service', () => {

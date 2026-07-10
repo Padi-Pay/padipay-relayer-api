@@ -1,6 +1,6 @@
 const AppError = require('../errors/AppError');
 
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   let statusCode = 500;
   let message = 'Internal Server Error';
   let error = 'INTERNAL_ERROR';

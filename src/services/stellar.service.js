@@ -1,5 +1,4 @@
 const StellarSdk = require('stellar-sdk');
-const ConfigError = require('../errors/ConfigError');
 const RpcError = require('../errors/RpcError');
 const StellarError = require('../errors/StellarError');
 const { parseTransactionError } = require('../utils/error.parser');

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "lint": "eslint src tests"
   },
   "jest": {
     "testEnvironment": "node",
@@ -37,6 +38,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.4",
     "supertest": "^7.2.2"
