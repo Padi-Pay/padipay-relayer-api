@@ -39,7 +39,31 @@ const createEscrowService = ({ transactionBuilder, config }) => {
     );
   };
 
-  return { createEscrow };
+  /**
+   * Constructs an unsigned contract invocation for locking funds in an escrow.
+   * @param {Object} params - Escrow parameters
+   * @param {string} params.escrowId - The unique identifier of the escrow
+   * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
+   */
+  const lockEscrow = async ({ escrowId }) => {
+    if (!escrowId) {
+      throw new ValidationError('Missing required parameter for lockEscrow: escrowId');
+    }
+
+    const scValParams = [
+      StellarSdk.nativeToScVal(escrowId, { type: 'u64' }), // Assuming u64 for escrowId
+    ];
+
+    const sourceAddress = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY).publicKey();
+
+    return await transactionBuilder.buildTransaction(
+      sourceAddress,
+      'lock_funds', // The presumed contract method
+      scValParams
+    );
+  };
+
+  return { createEscrow, lockEscrow };
 };
 
 module.exports = { createEscrowService };
