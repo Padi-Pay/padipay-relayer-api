@@ -16,9 +16,6 @@ const createStellarService = ({ config, server }) => {
    * @returns {string} Base64 encoded signed transaction XDR
    */
   const signTransaction = (transactionXdr) => {
-    if (!config.FEE_BUMP_SECRET_KEY) {
-      throw new ConfigError('FEE_BUMP_SECRET_KEY is missing from configuration');
-    }
 
     try {
       const sponsorKeypair = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY);

@@ -8,10 +8,6 @@ const ConfigError = require('../errors/ConfigError');
  * @returns {StellarSdk.Contract} The Stellar SDK contract instance.
  */
 const createSorobanClient = (config) => {
-  if (!config || !config.CONTRACT_ID) {
-    throw new ConfigError('CONTRACT_ID is missing from configuration');
-  }
-
   return new StellarSdk.Contract(config.CONTRACT_ID);
 };
 
