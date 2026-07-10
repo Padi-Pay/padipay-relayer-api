@@ -1,19 +1,42 @@
-// TODO: Import axios or stellar-sdk Server/rpc.Server to query network
+const RpcError = require('../errors/RpcError');
 
 /**
- * Queries the Stellar network for the status of a specific transaction.
- * 
- * TODO:
- * 1. Initialize a connection to the RPC_URL specified in the .env file.
- * 2. Query the network for the transaction using the provided `txId`.
- * 3. Parse the response to determine if the transaction was SUCCESS, FAILED, or is still PENDING.
- * 4. Handle Soroban-specific errors if the contract invocation failed on-chain.
- * 5. Return a normalized status object.
- * 
- * @param {string} txId - The transaction ID hash to query.
- * @returns {Promise<Object>} An object containing the current status and any error details.
+ * Factory function for the Network Service (Horizon/RPC) handling network queries.
+ * @param {Object} deps - Dependencies
+ * @param {StellarSdk.SorobanRpc.Server} deps.server - The Soroban RPC server instance
  */
-exports.getTransactionStatus = async (txId) => {
-  // Implementation goes here
-  return { status: 'success', txId };
+const createHorizonService = ({ server }) => {
+  /**
+   * Queries the Stellar RPC network for the status of a specific transaction.
+   * @param {string} txId - The transaction ID hash to query.
+   * @returns {Promise<Object>} Normalized status object
+   */
+  const getTransactionStatus = async (txId) => {
+    try {
+      const response = await server.getTransaction(txId);
+
+      if (response.status === 'NOT_FOUND') {
+        return {
+          success: false,
+          code: 'TX_NOT_FOUND',
+          message: 'The transaction could not be found.',
+        };
+      }
+
+      return {
+        success: true,
+        status: response.status,
+        txId,
+        resultXdr: response.resultXdr,
+        errorResultXdr: response.errorResultXdr,
+      };
+    } catch (error) {
+      console.error('[STATUS EXCEPTION]', error);
+      throw new RpcError('Failed to fetch transaction status from RPC.');
+    }
+  };
+
+  return { getTransactionStatus };
 };
+
+module.exports = { createHorizonService };
