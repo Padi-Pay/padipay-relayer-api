@@ -1,4 +1,5 @@
 const RpcError = require('../errors/RpcError');
+const { parseTransactionStatus } = require('../utils/status.parser');
 
 /**
  * Factory function for the Network Service (Horizon/RPC) handling network queries.
@@ -14,22 +15,7 @@ const createHorizonService = ({ server }) => {
   const getTransactionStatus = async (txId) => {
     try {
       const response = await server.getTransaction(txId);
-
-      if (response.status === 'NOT_FOUND') {
-        return {
-          success: false,
-          code: 'TX_NOT_FOUND',
-          message: 'The transaction could not be found.',
-        };
-      }
-
-      return {
-        success: true,
-        status: response.status,
-        txId,
-        resultXdr: response.resultXdr,
-        errorResultXdr: response.errorResultXdr,
-      };
+      return parseTransactionStatus(response, txId);
     } catch (error) {
       console.error('[STATUS EXCEPTION]', error);
       throw new RpcError('Failed to fetch transaction status from RPC.');
