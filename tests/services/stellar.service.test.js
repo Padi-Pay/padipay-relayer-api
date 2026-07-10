@@ -74,7 +74,9 @@ describe('Stellar Service', () => {
     it('should throw RpcError if transaction is rejected', async () => {
       mockServer.sendTransaction.mockResolvedValue({ status: 'ERROR' });
       
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       await expect(stellarService.submitTransaction(unsignedXdr)).rejects.toThrow(RpcError);
+      consoleSpy.mockRestore();
     });
 
     it('should throw StellarError on network failure', async () => {
@@ -82,7 +84,9 @@ describe('Stellar Service', () => {
       err.code = 'ECONNREFUSED';
       mockServer.sendTransaction.mockRejectedValue(err);
       
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       await expect(stellarService.submitTransaction(unsignedXdr)).rejects.toThrow(StellarError);
+      consoleSpy.mockRestore();
     });
   });
 });
