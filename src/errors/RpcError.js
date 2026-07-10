@@ -1,8 +1,8 @@
 const AppError = require('./AppError');
 
 class RpcError extends AppError {
-  constructor(message) {
-    super(message, 502, 'RPC_ERROR');
+  constructor(message, statusCode = 502, code = 'RPC_ERROR') {
+    super(message, statusCode, code);
   }
 }
 

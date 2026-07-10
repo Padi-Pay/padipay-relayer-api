@@ -1,7 +1,8 @@
 const StellarSdk = require('stellar-sdk');
-const StellarError = require('../errors/StellarError');
 const ConfigError = require('../errors/ConfigError');
 const RpcError = require('../errors/RpcError');
+const StellarError = require('../errors/StellarError');
+const { parseTransactionError } = require('../utils/error.parser');
 
 /**
  * Factory function for Stellar Service handling transaction operations like signing and submission.
@@ -42,7 +43,7 @@ const createStellarService = ({ config, server }) => {
       if (response.status === 'ERROR') {
         // Log the raw error internally to avoid leaking it to the client
         console.error('[SUBMISSION ERROR]', response.errorResultXdr || response.errorResult);
-        throw new RpcError('The transaction was rejected by the network.');
+        throw parseTransactionError(response);
       }
 
       return {
@@ -52,12 +53,12 @@ const createStellarService = ({ config, server }) => {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      if (error instanceof RpcError) {
+      if (error instanceof RpcError || error instanceof StellarError) {
         throw error; // Re-throw handled errors
       }
       // Log unexpected runtime errors (e.g. network connectivity issues)
       console.error('[SUBMISSION EXCEPTION]', error);
-      throw new RpcError('An unexpected error occurred during transaction submission.');
+      throw parseTransactionError(error);
     }
   };
 
