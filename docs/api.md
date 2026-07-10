@@ -1,22 +1,44 @@
-# PadiPay Relayer API Documentation
+# PadiPay Relayer API Reference
 
-This document outlines the public API endpoints exposed by the PadiPay Relayer service (v0.1.0 MVP). 
-The Relayer abstracts blockchain complexities, allowing frontend applications (like the WhatsApp Bot) to interact with Soroban Escrow smart contracts securely and gaslessly.
+## 1. API Overview
 
-## Environment Requirements
-The relayer relies on several environment variables. Make sure these are configured correctly before running:
-- `PORT`: Port the API runs on (default: `3000`)
-- `STELLAR_RPC_URL`: Soroban RPC endpoint (e.g., testnet)
-- `NETWORK_PASSPHRASE`: Stellar network passphrase
-- `CONTRACT_ID`: Deployed PadiPay Escrow Soroban contract address
-- `FEE_BUMP_SECRET_KEY`: Ed25519 Secret key of the account sponsoring transaction fees
+The PadiPay Relayer API acts as the bridge between frontend clients (such as the WhatsApp Bot) and the Soroban smart contracts on the Stellar network. It abstracts blockchain complexities by securely constructing, sponsoring, and submitting transactions gaslessly on behalf of users.
 
----
+## 2. Version Information
 
-## Error Handling
-The API follows a standardized error response format using Domain Errors mapped to HTTP status codes.
+* **Current version:** v0.1.0
+* **Current status:** MVP (Minimum Viable Product)
+* **Current network:** Stellar Testnet
 
-### Error Response Format
+## 3. Base URLs
+
+The API is accessible at the following base URLs depending on the environment:
+
+* **Local Development:** `http://localhost:3000`
+* **Testnet Deployment:** `[To be added post-deployment]`
+* **Production:** `[To be added post-deployment]`
+
+## 4. Authentication
+
+* Authentication is not implemented in v0.1.0.
+* Future releases will introduce request authentication for trusted PadiPay clients to secure endpoints against unauthorized usage.
+
+## 5. Response Format
+
+All successful API responses are returned as JSON objects containing the relevant data and a `success` or `status` indicator.
+
+**Standard Success Response Envelope:**
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+*(Note: Some endpoints like health check may return slightly different top-level keys like `{"status": "ok"}`)*
+
+**Standard Error Response Envelope:**
+In the event of an error, the API returns a structured JSON payload detailing the error domain, message, and optionally, specific issues.
+
 ```json
 {
   "error": "VALIDATION_ERROR",
@@ -30,24 +52,31 @@ The API follows a standardized error response format using Domain Errors mapped 
 }
 ```
 
-### Common Error Codes
-| Status | Error Code           | Description |
-|--------|----------------------|-------------|
-| 400    | `VALIDATION_ERROR`   | The request body or parameters failed schema validation. Check the `issues` array for details. |
-| 500    | `RPC_ERROR`          | Network submission to Stellar RPC failed or was rejected. |
-| 500    | `STELLAR_ERROR`      | Internal transaction building, signing, or XDR conversion failed. |
-| 500    | `INTERNAL_ERROR`     | An unexpected runtime exception occurred. |
+## 6. Error Handling
 
----
+The API uses standardized domain error codes mapped to standard HTTP status codes. We abstract away underlying raw Stellar SDK or Soroban RPC implementation details to provide curated domain errors.
 
-## Endpoints
+| HTTP Status | Error Code           | Description |
+|-------------|----------------------|-------------|
+| 400         | `VALIDATION_ERROR`   | The request payload or parameters failed schema validation. Details are provided in the `issues` array. |
+| 500         | `RPC_ERROR`          | Network submission to the Soroban RPC server failed or was rejected. |
+| 500         | `STELLAR_ERROR`      | Internal transaction building, signing, or XDR conversion failed. |
+| 500         | `INTERNAL_ERROR`     | An unexpected runtime exception occurred within the Relayer. |
 
-### 1. Health Check
-Check if the API is running and healthy.
+## 7. API Endpoints
 
-**Endpoint:** `GET /health`
+### 7.1. Health Check
 
-**Success Response (200 OK):**
+**Purpose:** Check if the API service is running and healthy.
+
+* **HTTP Method:** `GET`
+* **Route:** `/health`
+* **Request Headers:** None
+* **Path Parameters:** None
+* **Query Parameters:** None
+* **Request Body:** None
+
+**Successful Response (200 OK):**
 ```json
 {
   "status": "ok",
@@ -56,29 +85,33 @@ Check if the API is running and healthy.
 }
 ```
 
+**Expected HTTP Status Codes:**
+* `200 OK`: Service is healthy.
+
 ---
 
-### 2. Submit Escrow Action
-Submit a new escrow-related action to the blockchain. The relayer builds the Soroban transaction, sponsors the fee using a Fee Bump, and submits it to the Stellar network.
+### 7.2. Submit Escrow Action
 
-**Endpoint:** `POST /api/relayer/submit-escrow`
+**Purpose:** Submit a new escrow-related action to the blockchain. The relayer builds the Soroban transaction, sponsors the fee using a Fee Bump, and submits it to the Stellar network.
 
-**Headers:**
-- `Content-Type: application/json`
-
-**Request Payload:**
+* **HTTP Method:** `POST`
+* **Route:** `/api/relayer/submit-escrow`
+* **Request Headers:**
+  * `Content-Type: application/json`
+* **Path Parameters:** None
+* **Query Parameters:** None
+* **Request Body:**
 ```json
 {
-  "actionType": "LOCK", // Enum: ['LOCK', 'RELEASE', 'DISPUTE', 'REFUND']
+  "actionType": "LOCK",
   "params": {
     "id": "escrow-12345"
   }
 }
 ```
+*(Note: `actionType` accepts `LOCK`, `RELEASE`, `DISPUTE`, `REFUND`. The exact schema inside `params` is dependent on the `actionType`.)*
 
-*Note: The exact schema inside `params` depends on the `actionType`. For example, a `CREATE` action might include `buyer`, `seller`, and `amount`.*
-
-**Success Response (200 OK):**
+**Successful Response (200 OK):**
 ```json
 {
   "success": true,
@@ -88,30 +121,49 @@ Submit a new escrow-related action to the blockchain. The relayer builds the Sor
 }
 ```
 
+**Possible Error Responses:**
+* `400 Bad Request`: `VALIDATION_ERROR` (e.g. invalid `actionType`)
+* `500 Internal Server Error`: `RPC_ERROR` or `STELLAR_ERROR`
+
+**Expected HTTP Status Codes:**
+* `200 OK`: Transaction submitted successfully.
+* `400 Bad Request`: Validation failure.
+* `500 Internal Server Error`: Network or signing failure.
+
 ---
 
-### 3. Get Transaction Status
-Query the on-chain status of a previously submitted transaction.
+### 7.3. Get Transaction Status
 
-**Endpoint:** `GET /api/relayer/status/:txId`
+**Purpose:** Query the on-chain status of a previously submitted transaction.
 
-**Path Parameters:**
-- `txId` (string): The Stellar transaction hash returned by the `submit-escrow` endpoint.
+* **HTTP Method:** `GET`
+* **Route:** `/api/relayer/status/:txId`
+* **Request Headers:** None
+* **Path Parameters:** 
+  * `txId` (string): The Stellar transaction hash returned by the `submit-escrow` endpoint.
+* **Query Parameters:** None
+* **Request Body:** None
 
-**Success Response (200 OK):**
+**Successful Response (200 OK):**
 ```json
 {
-  "status": "SUCCESS", // Enum: ['SUCCESS', 'PENDING', 'FAILED']
+  "status": "SUCCESS",
   "hash": "c85... (Transaction Hash)",
   "errorResult": null
 }
 ```
 
-**Failure Response Example (200 OK with FAILED status):**
-```json
-{
-  "status": "FAILED",
-  "hash": "c85... (Transaction Hash)",
-  "errorResult": "opINVOKE_HOST_FUNCTION_FAILED" // Raw RPC failure code
-}
-```
+**Possible Error Responses:**
+* `400 Bad Request`: `VALIDATION_ERROR` (if `txId` is malformed)
+* `500 Internal Server Error`: `RPC_ERROR` (if fetching the status from the network fails)
+
+**Expected HTTP Status Codes:**
+* `200 OK`: Status retrieved successfully (note that a successful HTTP 200 response may contain a `status: "FAILED"` or `status: "PENDING"` payload).
+* `400 Bad Request`: Invalid transaction hash parameter.
+* `500 Internal Server Error`: Network communication failure.
+
+## 8. Version Notes
+
+The v0.1.0 MVP scope is limited to enabling core escrow interactions (submitting transactions and fetching status) without user-facing fees, targeting the Stellar Testnet. This foundation prioritizes deterministic error handling and seamless frontend integration.
+
+Additional endpoints (e.g. for creating escrows explicitly, or administrative actions) and request authentication will be introduced in future releases.
