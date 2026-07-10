@@ -178,6 +178,7 @@ Each repository has a clearly defined responsibility within the overall platform
 For detailed information on how this architecture works, please see our documentation hub:
 
 - [Architecture & The Relayer Pattern](./docs/architecture.md)
+- [API Documentation](./docs/api.md)
 - [Setup Guide](./docs/setup-guide.md)
 - [Contributing Guidelines](./docs/contributing.md)
 - [Roadmap](./docs/roadmap.md)
