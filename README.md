@@ -1,3 +1,19 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Padi-Pay/padipay-frontend/main/web/public/logo.png" alt="PadiPay Logo" width="200" />
+
+  # PadiPay Ecosystem Portal
+  
+  **"Trade with confidence, even with people you've never met."**
+
+  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+  [![Built with Next.js](https://img.shields.io/badge/Built_with-Next.js-black?logo=next.js)](https://nextjs.org/)
+  [![Stellar Soroban](https://img.shields.io/badge/Powered_by-Stellar_Soroban-purple)](https://soroban.stellar.org/)
+</div>
+
+<br />
+
+
+
 # PadiPay Stellar Relayer API
 
 The **PadiPay Stellar Relayer API** is the middleware layer that bridges Web2 applications with the PadiPay Soroban smart contracts on the Stellar network.
