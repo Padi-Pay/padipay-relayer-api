@@ -35,7 +35,7 @@ const createStellarService = ({ config, server }) => {
   /**
    * Submits a signed transaction to the Stellar RPC network.
    * @param {string} signedTransactionXdr - Base64 encoded XDR of the signed transaction
-   * @returns {Promise<string>} The transaction hash returned by the network
+   * @returns {Promise<Object>} Normalized submission result containing success status, hash, network, and timestamp.
    */
   const submitTransaction = async (signedTransactionXdr) => {
     try {
@@ -43,12 +43,24 @@ const createStellarService = ({ config, server }) => {
       const response = await server.sendTransaction(transaction);
 
       if (response.status === 'ERROR') {
-        throw new Error(JSON.stringify(response.errorResultXdr || response.errorResult));
+        // Log the raw error internally to avoid leaking it to the client
+        console.error('[SUBMISSION ERROR]', response.errorResultXdr || response.errorResult);
+        throw new RpcError('The transaction was rejected by the network.');
       }
 
-      return response.hash;
+      return {
+        success: true,
+        hash: response.hash,
+        network: config.NETWORK_PASSPHRASE,
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
-      throw new RpcError(`Transaction submission failed: ${error.message}`);
+      if (error instanceof RpcError) {
+        throw error; // Re-throw handled errors
+      }
+      // Log unexpected runtime errors (e.g. network connectivity issues)
+      console.error('[SUBMISSION EXCEPTION]', error);
+      throw new RpcError('An unexpected error occurred during transaction submission.');
     }
   };
 
