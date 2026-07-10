@@ -16,10 +16,10 @@ const createEscrowSchema = z.object({
   }),
 });
 
-const lockEscrowSchema = z.object({
+const escrowActionSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Escrow ID is required"),
   }),
 });
 
-module.exports = { submitEscrowSchema, createEscrowSchema, lockEscrowSchema };
+module.exports = { submitEscrowSchema, createEscrowSchema, escrowActionSchema };
