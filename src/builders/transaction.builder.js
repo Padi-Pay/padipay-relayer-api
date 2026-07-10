@@ -42,7 +42,30 @@ const createTransactionBuilder = ({ server, contract, config }) => {
     }
   };
 
-  return { buildTransaction };
+  /**
+   * Constructs a Fee Bump transaction to sponsor the fees of an inner transaction.
+   * @param {string} innerTransactionXdr - Base64 encoded XDR of the unsigned inner transaction
+   * @returns {string} Base64 encoded Fee Bump transaction XDR
+   */
+  const buildFeeBumpTransaction = (innerTransactionXdr) => {
+    try {
+      const innerTx = StellarSdk.TransactionBuilder.fromXDR(innerTransactionXdr, config.NETWORK_PASSPHRASE);
+      const sponsorKeypair = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY);
+
+      const feeBumpTx = StellarSdk.TransactionBuilder.buildFeeBumpTransaction(
+        sponsorKeypair,
+        StellarSdk.BASE_FEE, // Sponsoring fee rate
+        innerTx,
+        config.NETWORK_PASSPHRASE
+      );
+
+      return feeBumpTx.toXDR();
+    } catch (error) {
+      throw new StellarError(`Failed to build fee bump transaction: ${error.message}`);
+    }
+  };
+
+  return { buildTransaction, buildFeeBumpTransaction };
 };
 
 module.exports = { createTransactionBuilder };
