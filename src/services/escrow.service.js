@@ -1,5 +1,4 @@
 const StellarSdk = require('stellar-sdk');
-const ValidationError = require('../errors/ValidationError');
 
 /**
  * Factory function for the Escrow Service.
@@ -17,9 +16,6 @@ const createEscrowService = ({ transactionBuilder, config }) => {
    * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const createEscrow = async (params) => {
-    if (!params || !params.buyer || !params.seller || !params.amount) {
-      throw new ValidationError('Missing required parameters for createEscrow: buyer, seller, amount');
-    }
 
     const { buyer, seller, amount } = params;
 
@@ -46,9 +42,6 @@ const createEscrowService = ({ transactionBuilder, config }) => {
    * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const lockEscrow = async ({ escrowId }) => {
-    if (!escrowId) {
-      throw new ValidationError('Missing required parameter for lockEscrow: escrowId');
-    }
 
     const scValParams = [
       StellarSdk.nativeToScVal(escrowId, { type: 'u64' }), // Assuming u64 for escrowId
@@ -70,9 +63,6 @@ const createEscrowService = ({ transactionBuilder, config }) => {
    * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const releaseEscrow = async ({ escrowId }) => {
-    if (!escrowId) {
-      throw new ValidationError('Missing required parameter for releaseEscrow: escrowId');
-    }
 
     const scValParams = [
       StellarSdk.nativeToScVal(escrowId, { type: 'u64' }),
@@ -94,9 +84,6 @@ const createEscrowService = ({ transactionBuilder, config }) => {
    * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const refundEscrow = async ({ escrowId }) => {
-    if (!escrowId) {
-      throw new ValidationError('Missing required parameter for refundEscrow: escrowId');
-    }
 
     const scValParams = [
       StellarSdk.nativeToScVal(escrowId, { type: 'u64' }),
