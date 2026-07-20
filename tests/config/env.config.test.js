@@ -18,6 +18,7 @@ describe('Environment Configuration', () => {
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
+    process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
 
     const config = loadConfig();
 
@@ -39,7 +40,19 @@ describe('Environment Configuration', () => {
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
+    process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
 
     expect(() => loadConfig()).toThrow(ConfigError);
+  });
+
+  it('should throw ConfigError if DATABASE_URL is missing', () => {
+    process.env.RPC_URL = 'https://rpc-testnet.stellar.org';
+    process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
+    process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
+    process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
+    delete process.env.DATABASE_URL;
+
+    expect(() => loadConfig()).toThrow(ConfigError);
+    expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 });

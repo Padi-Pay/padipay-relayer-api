@@ -8,6 +8,7 @@ const envSchema = z.object({
   NETWORK_PASSPHRASE: z.string().min(1),
   CONTRACT_ID: z.string().min(1),
   FEE_BUMP_SECRET_KEY: z.string().min(1),
+  DATABASE_URL: z.string().url(),
 });
 
 const loadConfig = () => {

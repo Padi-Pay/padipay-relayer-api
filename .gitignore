@@ -24,3 +24,11 @@ node_modules/
 
 # Test Coverage
 coverage/
+
+/src/generated/prisma
+
+# Prisma skills directories
+.claude/skills/
+.windsurf/skills/
+.agents/skills/
+skills-lock.json
