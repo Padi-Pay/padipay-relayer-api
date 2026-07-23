@@ -14,13 +14,15 @@ enum Role {
 }
 
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  name           String?
-  role           Role     @default(USER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  wallet         Wallet?
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  wallet        Wallet?
+  buyerIntents  EscrowIntent[] @relation("BuyerIntents")
+  sellerIntents EscrowIntent[] @relation("SellerIntents")
 
   @@map("users")
 }
@@ -35,4 +37,23 @@ model Wallet {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model EscrowIntent {
+  id              String  @id @default(uuid())
+  buyerId         String
+  sellerId        String
+  amount          Float
+  status          String  @default("PENDING")
+  sorobanEscrowId String?
+
+  buyer  User @relation("BuyerIntents", fields: [buyerId], references: [id])
+  seller User @relation("SellerIntents", fields: [sellerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@map("escrow_intents")
 }
