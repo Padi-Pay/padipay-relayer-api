@@ -5,8 +5,11 @@ const StellarSdk = require('stellar-sdk');
  * @param {Object} deps - Dependencies
  * @param {Object} deps.transactionBuilder - The injected transaction builder.
  * @param {Object} deps.config - Application configuration.
+ * @param {Object} deps.userRepository - User Data Access Repository.
+ * @param {Object} deps.walletRepository - Wallet Data Access Repository.
+ * @param {Object} deps.escrowIntentRepository - Escrow Intent Data Access Repository.
  */
-const createEscrowService = ({ transactionBuilder, config }) => {
+const createEscrowService = ({ transactionBuilder, config, userRepository, walletRepository, escrowIntentRepository }) => {
   /**
    * Constructs an unsigned contract invocation for creating an escrow.
    * @param {Object} params - Escrow parameters
@@ -98,7 +101,7 @@ const createEscrowService = ({ transactionBuilder, config }) => {
     );
   };
 
-  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow };
+  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow, userRepository, walletRepository, escrowIntentRepository };
 };
 
 module.exports = { createEscrowService };
