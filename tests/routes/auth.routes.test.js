@@ -12,6 +12,7 @@ jest.mock('../../src/services/auth.service', () => ({
   createAuthService: jest.fn().mockReturnValue({
     register: jest.fn(),
     login: jest.fn(),
+    googleSignIn: jest.fn(),
   })
 }));
 
@@ -76,6 +77,31 @@ describe('Auth Routes', () => {
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Invalid email or password');
+    });
+  });
+
+  describe('POST /api/auth/google', () => {
+    it('returns 200 on successful google sign in', async () => {
+      authServiceMock.googleSignIn.mockResolvedValue({ user: { id: '1', email: 'google@test.com' }, token: 'mock-jwt-token' });
+      
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ idToken: 'valid-google-id-token' });
+        
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.id).toBe('1');
+      expect(res.body.data.token).toBe('mock-jwt-token');
+    });
+
+    it('returns 400 for missing idToken', async () => {
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({}); // missing idToken
+        
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('body.idToken');
     });
   });
 });

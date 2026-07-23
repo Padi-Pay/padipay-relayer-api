@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../middleware/validate.middleware');
-const { registerSchema, loginSchema } = require('../validation/schemas/auth.schema');
+const { registerSchema, loginSchema, googleSchema } = require('../validation/schemas/auth.schema');
 const { createAuthService } = require('../services/auth.service');
 const { UserRepository } = require('../repositories/user.repository');
 const prisma = require('../clients/prisma.client');
@@ -29,6 +29,19 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Login successful',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/google', validate(googleSchema), async (req, res, next) => {
+  try {
+    const result = await authService.googleSignIn(req.body);
+    res.status(200).json({
+      success: true,
+      message: 'Google Sign-In successful',
       data: result,
     });
   } catch (error) {

@@ -20,6 +20,7 @@ describe('Environment Configuration', () => {
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
     process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 
     const config = loadConfig();
 
@@ -43,6 +44,7 @@ describe('Environment Configuration', () => {
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
     process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 
     expect(() => loadConfig()).toThrow(ConfigError);
   });
@@ -65,6 +67,7 @@ describe('Environment Configuration', () => {
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
     process.env.JWT_SECRET = 'short';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 
     expect(() => loadConfig()).toThrow(ConfigError);
     expect(() => loadConfig()).toThrow('JWT secret must be at least 32 characters');
