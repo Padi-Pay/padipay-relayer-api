@@ -9,6 +9,7 @@ const envSchema = z.object({
   CONTRACT_ID: z.string().min(1),
   FEE_BUMP_SECRET_KEY: z.string().min(1),
   DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters'),
 });
 
 const loadConfig = () => {
