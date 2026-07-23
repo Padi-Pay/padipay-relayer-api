@@ -33,6 +33,7 @@
   "dependencies": {
     "@prisma/client": "^7.9.0",
     "axios": "^1.6.8",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "stellar-sdk": "^11.3.0",
