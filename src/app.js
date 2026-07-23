@@ -17,8 +17,11 @@ const PORT = config.PORT;
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+const authRoutes = require('./routes/auth.routes');
+
 // API Routes
 app.use('/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/relayer', relayerRoutes);
 
 // Error Handling Middleware
