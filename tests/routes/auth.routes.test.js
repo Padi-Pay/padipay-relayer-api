@@ -54,7 +54,7 @@ describe('Auth Routes', () => {
 
   describe('POST /api/auth/login', () => {
     it('returns 200 on successful login', async () => {
-      authServiceMock.login.mockResolvedValue({ id: '1', email: 'test@test.com' });
+      authServiceMock.login.mockResolvedValue({ user: { id: '1', email: 'test@test.com' }, token: 'mock-jwt-token' });
       
       const res = await request(app)
         .post('/api/auth/login')
@@ -62,7 +62,8 @@ describe('Auth Routes', () => {
         
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.id).toBe('1');
+      expect(res.body.data.user.id).toBe('1');
+      expect(res.body.data.token).toBe('mock-jwt-token');
     });
 
     it('handles service AppError correctly (e.g. invalid credentials)', async () => {
