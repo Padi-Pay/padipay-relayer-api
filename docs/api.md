@@ -20,8 +20,9 @@ The API is accessible at the following base URLs depending on the environment:
 
 ## 4. Authentication
 
-* Authentication is not implemented in v0.1.0.
-* Future releases will introduce request authentication for trusted PadiPay clients to secure endpoints against unauthorized usage.
+* The API uses JWT Bearer token authentication for protected routes.
+* Clients must include the token in the `Authorization: Bearer <token>` header.
+* Tokens are issued via the `/api/auth/login` or `/api/auth/google` endpoints.
 
 ## 5. Response Format
 
@@ -90,7 +91,47 @@ The API uses standardized domain error codes mapped to standard HTTP status code
 
 ---
 
-### 7.2. Submit Escrow Action
+### 7.2. Authentication
+
+**Purpose:** Register users, authenticate via email/password, or sign in via Google.
+
+* **HTTP Method:** `POST`
+* **Routes:** 
+  * `/api/auth/register` (Body: `{ "email": "...", "password": "..." }`)
+  * `/api/auth/login` (Body: `{ "email": "...", "password": "..." }`)
+  * `/api/auth/google` (Body: `{ "idToken": "..." }`)
+* **Request Headers:**
+  * `Content-Type: application/json`
+
+**Successful Login/Google Sign-In Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "googleId": "...",
+      "name": "User Name",
+      "role": "USER",
+      "createdAt": "..."
+    },
+    "token": "eyJhbGci..."
+  }
+}
+```
+
+**Expected HTTP Status Codes:**
+* `201 Created`: Registration successful.
+* `200 OK`: Login or Google Sign-In successful.
+* `400 Bad Request`: Validation failure (e.g. invalid email format, weak password, missing token).
+* `401 Unauthorized`: Invalid credentials or Google account mismatch.
+* `409 Conflict`: Email already in use.
+
+---
+
+### 7.3. Submit Escrow Action
 
 **Purpose:** Submit a new escrow-related action to the blockchain. The relayer builds the Soroban transaction, sponsors the fee using a Fee Bump, and submits it to the Stellar network.
 
@@ -132,7 +173,7 @@ The API uses standardized domain error codes mapped to standard HTTP status code
 
 ---
 
-### 7.3. Get Transaction Status
+### 7.4. Get Transaction Status
 
 **Purpose:** Query the on-chain status of a previously submitted transaction.
 

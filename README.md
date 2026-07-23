@@ -185,6 +185,9 @@ STELLAR_RPC_URL=
 NETWORK_PASSPHRASE=
 CONTRACT_ID=
 FEE_BUMP_SECRET_KEY=
+DATABASE_URL=
+JWT_SECRET=
+GOOGLE_CLIENT_ID=
 ```
 
 Additional configuration options may be introduced in future releases.

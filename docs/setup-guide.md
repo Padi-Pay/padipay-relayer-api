@@ -41,6 +41,13 @@ Install the project dependencies.
 npm install
 ```
 
+Generate Prisma client and push schema to database.
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
 ---
 
 # Configure Environment Variables
@@ -65,6 +72,12 @@ NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 CONTRACT_ID=<your-contract-id>
 
 FEE_BUMP_SECRET_KEY=<your-testnet-secret-key>
+
+DATABASE_URL=postgresql://user:password@localhost:5432/padipay
+
+JWT_SECRET=<your-32-char-jwt-secret>
+
+GOOGLE_CLIENT_ID=<your-google-client-id>
 ```
 
 Never commit your `.env` file or expose private keys.
