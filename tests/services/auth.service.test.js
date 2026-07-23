@@ -1,6 +1,11 @@
 const bcrypt = require('bcryptjs');
 const { createAuthService } = require('../../src/services/auth.service');
 const AppError = require('../../src/errors/AppError');
+const jwt = require('jsonwebtoken');
+
+jest.mock('../../src/config/env.config', () => ({
+  loadConfig: jest.fn().mockReturnValue({ JWT_SECRET: 'test-secret' }),
+}));
 
 describe('AuthService', () => {
   let authService;
@@ -70,14 +75,18 @@ describe('AuthService', () => {
         .toMatchObject({ message: 'Invalid email or password' });
     });
 
-    it('logs in successfully and returns user without password', async () => {
+    it('logs in successfully and returns user and token', async () => {
       const hashedPassword = await bcrypt.hash('Correct1!', 10);
-      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'test@test.com', password: hashedPassword });
+      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'test@test.com', role: 'USER', password: hashedPassword });
       
-      const user = await authService.login({ email: 'test@test.com', password: 'Correct1!' });
+      const { user, token } = await authService.login({ email: 'test@test.com', password: 'Correct1!' });
       
       expect(user).not.toHaveProperty('password');
       expect(user.id).toBe('1');
+      expect(token).toBeDefined();
+      const decoded = jwt.verify(token, 'test-secret');
+      expect(decoded.id).toBe('1');
+      expect(decoded.role).toBe('USER');
     });
   });
 });
