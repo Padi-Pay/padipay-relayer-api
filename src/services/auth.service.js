@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const AppError = require('../errors/AppError');
+const { loadConfig } = require('../config/env.config');
 
 const createAuthService = ({ userRepository }) => {
   const register = async ({ email, password }) => {
@@ -35,7 +37,15 @@ const createAuthService = ({ userRepository }) => {
 
     const userWithoutPassword = { ...user };
     delete userWithoutPassword.password;
-    return userWithoutPassword;
+
+    const { JWT_SECRET } = loadConfig();
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    return { user: userWithoutPassword, token };
   };
 
   return { register, login };
