@@ -35,7 +35,32 @@ const createWalletProvider = ({ config } = {}) => {
     };
   };
 
-  return { fundWallet };
+  /**
+   * Executes a managed wallet withdrawal through the underlying provider.
+   *
+   * Used to debit/reserve funds from a user's managed balance so they can be
+   * committed to an on-chain operation (e.g. funding an escrow). Mirrors
+   * `fundWallet`'s stub shape until a real provider is integrated.
+   *
+   * @param {Object} params - Withdrawal parameters
+   * @param {string} params.walletAddress - The managed wallet to debit.
+   * @param {string} params.amount - The amount to withdraw (string to safely
+   *   handle large numbers), already validated/derived server-side.
+   * @param {string} params.asset - The asset code to withdraw (e.g. 'XLM').
+   * @returns {Promise<Object>} A withdrawal receipt describing the reservation.
+   */
+  const withdrawFromWallet = async ({ walletAddress, amount, asset }) => {
+    return {
+      reference: `withdraw_${crypto.randomUUID()}`,
+      status: 'RESERVED',
+      walletAddress,
+      amount,
+      asset,
+      network: config?.NETWORK_PASSPHRASE ?? 'unknown',
+    };
+  };
+
+  return { fundWallet, withdrawFromWallet };
 };
 
 module.exports = { createWalletProvider };
