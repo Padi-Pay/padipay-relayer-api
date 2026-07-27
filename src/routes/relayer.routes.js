@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../middleware/validate.middleware');
-const { submitEscrowSchema } = require('../validation/schemas/escrow.schema');
+const { submitEscrowSchema, syncEscrowSchema } = require('../validation/schemas/escrow.schema');
 const { fundWalletSchema } = require('../validation/schemas/funding.schema');
 const { createWalletProvider } = require('../providers/wallet.provider');
 const { createFundingService } = require('../services/funding.service');
+const { createEscrowSyncService } = require('../services/escrow-sync.service');
+const { EscrowIntentRepository } = require('../repositories/escrow-intent.repository');
 
 // TODO: Import escrow service and horizon service (to be implemented in Phase 4)
 // const escrowService = require('../services/escrow.service');
@@ -13,6 +15,10 @@ const { createFundingService } = require('../services/funding.service');
 // Compose the funding service against the generic wallet provider abstraction.
 const walletProvider = createWalletProvider();
 const fundingService = createFundingService({ walletProvider });
+
+// Compose the on-chain synchronization service against the escrow intent repository.
+const escrowIntentRepository = new EscrowIntentRepository();
+const escrowSyncService = createEscrowSyncService({ escrowIntentRepository });
 
 /**
  * POST /submit-escrow
@@ -36,6 +42,32 @@ router.post('/fund', validate(fundWalletSchema), async (req, res, next) => {
       success: true,
       message: 'Wallet funding initiated',
       data: receipt,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /escrow/:id/sync
+ * Internal/webhook endpoint that bridges an EscrowIntent's off-chain record
+ * with the outcome of its on-chain transaction: on a reported SUCCESS it
+ * deterministically stamps the intent with the on-chain escrow id and
+ * transitions its status from PENDING to LOCKED. Not tied to a specific
+ * user session, so it is not gated by the `authenticate` middleware.
+ */
+router.post('/escrow/:id/sync', validate(syncEscrowSchema), async (req, res, next) => {
+  try {
+    const result = await escrowSyncService.syncEscrowOnChain({
+      escrowIntentId: req.params.id,
+      sorobanEscrowId: req.body.sorobanEscrowId,
+      status: req.body.status,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Escrow intent synchronization processed',
+      data: result,
     });
   } catch (error) {
     next(error);
