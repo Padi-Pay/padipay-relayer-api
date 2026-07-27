@@ -22,4 +22,14 @@ const escrowActionSchema = z.object({
   }),
 });
 
-module.exports = { submitEscrowSchema, createEscrowSchema, escrowActionSchema };
+const syncEscrowSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Escrow ID is required"),
+  }),
+  body: z.object({
+    sorobanEscrowId: z.string().min(1, "On-chain escrow id is required"),
+    status: z.enum(['SUCCESS', 'FAILED', 'NOT_FOUND', 'PENDING']),
+  }),
+});
+
+module.exports = { submitEscrowSchema, createEscrowSchema, escrowActionSchema, syncEscrowSchema };

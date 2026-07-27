@@ -1,4 +1,4 @@
-const { createEscrowSchema, submitEscrowSchema, escrowActionSchema } = require('../../../src/validation/schemas/escrow.schema');
+const { createEscrowSchema, submitEscrowSchema, escrowActionSchema, syncEscrowSchema } = require('../../../src/validation/schemas/escrow.schema');
 
 describe('Escrow Schemas', () => {
   describe('createEscrowSchema', () => {
@@ -56,6 +56,36 @@ describe('Escrow Schemas', () => {
 
     it('should fail when escrow id is missing', () => {
       const result = escrowActionSchema.safeParse({ params: {} });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('syncEscrowSchema', () => {
+    it('should validate a correct synchronization payload', () => {
+      const payload = { params: { id: 'intent-1' }, body: { sorobanEscrowId: '42', status: 'SUCCESS' } };
+      const result = syncEscrowSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept any recognized transaction status', () => {
+      ['SUCCESS', 'FAILED', 'NOT_FOUND', 'PENDING'].forEach((status) => {
+        const result = syncEscrowSchema.safeParse({ params: { id: 'intent-1' }, body: { sorobanEscrowId: '42', status } });
+        expect(result.success).toBe(true);
+      });
+    });
+
+    it('should fail when sorobanEscrowId is missing', () => {
+      const result = syncEscrowSchema.safeParse({ params: { id: 'intent-1' }, body: { status: 'SUCCESS' } });
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail for an unrecognized status', () => {
+      const result = syncEscrowSchema.safeParse({ params: { id: 'intent-1' }, body: { sorobanEscrowId: '42', status: 'BOGUS' } });
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail when escrow id param is missing', () => {
+      const result = syncEscrowSchema.safeParse({ params: {}, body: { sorobanEscrowId: '42', status: 'SUCCESS' } });
       expect(result.success).toBe(false);
     });
   });
