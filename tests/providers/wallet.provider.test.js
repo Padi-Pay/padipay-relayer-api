@@ -36,4 +36,42 @@ describe('Wallet Provider', () => {
 
     expect(receipt.network).toBe('unknown');
   });
+
+  describe('withdrawFromWallet', () => {
+    it('should return a withdrawal receipt for a debit request', async () => {
+      const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' } });
+
+      const receipt = await provider.withdrawFromWallet({
+        walletAddress: 'G_WALLET',
+        amount: '1000',
+        asset: 'XLM',
+      });
+
+      expect(receipt).toMatchObject({
+        status: 'RESERVED',
+        walletAddress: 'G_WALLET',
+        amount: '1000',
+        asset: 'XLM',
+        network: 'Test SDF Network',
+      });
+      expect(receipt.reference).toMatch(/^withdraw_/);
+    });
+
+    it('should generate a unique reference per request', async () => {
+      const provider = createWalletProvider();
+
+      const first = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
+      const second = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
+
+      expect(first.reference).not.toBe(second.reference);
+    });
+
+    it('should fall back to an unknown network when config is absent', async () => {
+      const provider = createWalletProvider();
+
+      const receipt = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
+
+      expect(receipt.network).toBe('unknown');
+    });
+  });
 });
