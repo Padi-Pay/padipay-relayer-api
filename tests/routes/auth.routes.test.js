@@ -13,6 +13,8 @@ jest.mock('../../src/services/auth.service', () => ({
     register: jest.fn(),
     login: jest.fn(),
     googleSignIn: jest.fn(),
+    requestPasswordReset: jest.fn(),
+    resetPassword: jest.fn(),
   })
 }));
 
@@ -102,6 +104,65 @@ describe('Auth Routes', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toContain('body.idToken');
+    });
+  });
+  describe('POST /api/auth/recover', () => {
+    it('returns 200 with success message on valid email payload', async () => {
+      authServiceMock.requestPasswordReset.mockResolvedValue({ success: true });
+      
+      const res = await request(app)
+        .post('/api/auth/recover')
+        .send({ email: 'test@test.com' });
+        
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('password recovery token has been issued');
+    });
+
+    it('returns 400 for invalid email', async () => {
+      const res = await request(app)
+        .post('/api/auth/recover')
+        .send({ email: 'not-an-email' });
+        
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('body.email');
+    });
+  });
+
+  describe('POST /api/auth/reset', () => {
+    it('returns 200 on successful password reset', async () => {
+      authServiceMock.resetPassword.mockResolvedValue({ success: true });
+      
+      const res = await request(app)
+        .post('/api/auth/reset')
+        .send({ token: 'valid-token', newPassword: 'Password1!' });
+        
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Password reset successful');
+    });
+
+    it('returns 400 for weak newPassword', async () => {
+      const res = await request(app)
+        .post('/api/auth/reset')
+        .send({ token: 'valid-token', newPassword: 'weak' });
+        
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('Password must');
+    });
+
+    it('handles service AppError for invalid/expired tokens', async () => {
+      authServiceMock.resetPassword.mockRejectedValue(new AppError('Invalid or expired reset token', 400));
+      
+      const res = await request(app)
+        .post('/api/auth/reset')
+        .send({ token: 'invalid-token', newPassword: 'Password1!' });
+        
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Invalid or expired reset token');
     });
   });
 });

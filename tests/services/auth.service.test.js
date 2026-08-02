@@ -22,6 +22,7 @@ jest.mock('../../src/config/env.config', () => ({
 describe('AuthService', () => {
   let authService;
   let mockUserRepository;
+  let mockPasswordResetTokenRepository;
 
   beforeEach(() => {
     mockUserRepository = {
@@ -29,7 +30,16 @@ describe('AuthService', () => {
       create: jest.fn(),
       update: jest.fn(),
     };
-    authService = createAuthService({ userRepository: mockUserRepository });
+    mockPasswordResetTokenRepository = {
+      create: jest.fn(),
+      findByTokenHash: jest.fn(),
+      markUsed: jest.fn(),
+      deleteExpiredByUserId: jest.fn(),
+    };
+    authService = createAuthService({ 
+      userRepository: mockUserRepository, 
+      passwordResetTokenRepository: mockPasswordResetTokenRepository 
+    });
     jest.clearAllMocks();
   });
 
@@ -165,6 +175,68 @@ describe('AuthService', () => {
       await expect(authService.googleSignIn({ idToken: 'invalid-token' }))
         .rejects
         .toMatchObject({ message: 'Invalid Google token' });
+    });
+  });
+  describe('requestPasswordReset', () => {
+    it('returns success even if email does not exist (prevents enumeration)', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      const result = await authService.requestPasswordReset({ email: 'notfound@test.com' });
+      expect(result).toEqual({ success: true });
+      expect(mockPasswordResetTokenRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('creates a token record if email exists', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'found@test.com' });
+      mockPasswordResetTokenRepository.create.mockResolvedValue({ id: 't1' });
+      const result = await authService.requestPasswordReset({ email: 'found@test.com' });
+      
+      expect(result).toEqual({ success: true });
+      expect(mockPasswordResetTokenRepository.deleteExpiredByUserId).toHaveBeenCalledWith('1');
+      expect(mockPasswordResetTokenRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        userId: '1',
+        tokenHash: expect.any(String),
+        expiresAt: expect.any(Date)
+      }));
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('throws error if token is invalid', async () => {
+      mockPasswordResetTokenRepository.findByTokenHash.mockResolvedValue(null);
+      await expect(authService.resetPassword({ token: 'invalid', newPassword: 'Password1!' }))
+        .rejects
+        .toMatchObject({ message: 'Invalid or expired reset token', statusCode: 400 });
+    });
+
+    it('throws error if token is already used', async () => {
+      mockPasswordResetTokenRepository.findByTokenHash.mockResolvedValue({
+        id: 't1', userId: '1', usedAt: new Date(), expiresAt: new Date(Date.now() + 10000)
+      });
+      await expect(authService.resetPassword({ token: 'used', newPassword: 'Password1!' }))
+        .rejects
+        .toMatchObject({ message: 'Invalid or expired reset token', statusCode: 400 });
+    });
+
+    it('throws error if token is expired', async () => {
+      mockPasswordResetTokenRepository.findByTokenHash.mockResolvedValue({
+        id: 't1', userId: '1', usedAt: null, expiresAt: new Date(Date.now() - 10000)
+      });
+      await expect(authService.resetPassword({ token: 'expired', newPassword: 'Password1!' }))
+        .rejects
+        .toMatchObject({ message: 'Invalid or expired reset token', statusCode: 400 });
+    });
+
+    it('updates password and marks token as used on success', async () => {
+      mockPasswordResetTokenRepository.findByTokenHash.mockResolvedValue({
+        id: 't1', userId: '1', usedAt: null, expiresAt: new Date(Date.now() + 10000)
+      });
+      mockUserRepository.update.mockResolvedValue({});
+      
+      const result = await authService.resetPassword({ token: 'valid', newPassword: 'Password1!' });
+      
+      expect(result).toEqual({ success: true });
+      expect(mockUserRepository.update).toHaveBeenCalledWith('1', { password: expect.any(String) });
+      expect(mockPasswordResetTokenRepository.markUsed).toHaveBeenCalledWith('t1');
     });
   });
 });

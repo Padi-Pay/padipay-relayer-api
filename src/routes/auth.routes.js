@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../middleware/validate.middleware');
-const { registerSchema, loginSchema, googleSchema } = require('../validation/schemas/auth.schema');
+const { registerSchema, loginSchema, googleSchema, recoverSchema, resetPasswordSchema } = require('../validation/schemas/auth.schema');
 const { createAuthService } = require('../services/auth.service');
 const { UserRepository } = require('../repositories/user.repository');
+const { PasswordResetTokenRepository } = require('../repositories/password-reset-token.repository');
 const prisma = require('../clients/prisma.client');
 
 // Initialize dependencies
 const userRepository = new UserRepository(prisma);
-const authService = createAuthService({ userRepository });
+const passwordResetTokenRepository = new PasswordResetTokenRepository(prisma);
+const authService = createAuthService({ userRepository, passwordResetTokenRepository });
 
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
@@ -42,6 +44,32 @@ router.post('/google', validate(googleSchema), async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Google Sign-In successful',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/recover', validate(recoverSchema), async (req, res, next) => {
+  try {
+    const result = await authService.requestPasswordReset(req.body);
+    res.status(200).json({
+      success: true,
+      message: 'If the email exists, a password recovery token has been issued',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/reset', validate(resetPasswordSchema), async (req, res, next) => {
+  try {
+    const result = await authService.resetPassword(req.body);
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful',
       data: result,
     });
   } catch (error) {
