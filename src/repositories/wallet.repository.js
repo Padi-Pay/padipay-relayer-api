@@ -13,6 +13,10 @@ class WalletRepository {
     return this.db.wallet.findUnique({ where: { userId } });
   }
 
+  async findByPublicKey(publicKey) {
+    return this.db.wallet.findUnique({ where: { publicKey } });
+  }
+
   async create(data) {
     return this.db.wallet.create({ data });
   }
