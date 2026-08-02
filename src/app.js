@@ -22,6 +22,7 @@ try {
 
 // Initialize Stellar/Soroban dependencies
 const server = new StellarSdk.SorobanRpc.Server(config.RPC_URL);
+const horizonServer = new StellarSdk.Horizon.Server(config.HORIZON_URL);
 const contract = new StellarSdk.Contract(config.CONTRACT_ID);
 
 // Initialize Prisma
@@ -35,15 +36,19 @@ const { createEscrowRepository } = require('./repositories/escrow.repository');
 const { createTransactionRepository } = require('./repositories/transaction.repository');
 
 createUserRepository({ prisma });
-createWalletRepository({ prisma });
+const walletRepository = createWalletRepository({ prisma });
 const escrowRepository = createEscrowRepository({ prisma });
 const transactionRepository = createTransactionRepository({ prisma });
 
 // Bootstrap Dependency Injection Container
 const transactionBuilder = createTransactionBuilder({ server, contract, config });
 const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
-const horizonService = createHorizonService({ server });
+const horizonService = createHorizonService({ server, horizonServer });
 const stellarService = createStellarService({ config, server });
+
+const { createWalletProvider } = require('./providers/wallet.provider');
+const walletProvider = createWalletProvider({ config, horizonService });
+
 // eslint-disable-next-line no-unused-vars
 const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
@@ -56,10 +61,12 @@ app.use(express.json());
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const accountsRoutes = require('./routes/accounts.routes');
-const walletsRoutes = require('./routes/wallets.routes');
+const { createWalletsRoutes } = require('./routes/wallets.routes');
 
 // API Routes
 const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
+const walletsRoutes = createWalletsRoutes({ walletProvider, walletRepository });
+
 app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users/me', authenticate, usersRoutes);

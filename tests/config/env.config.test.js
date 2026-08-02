@@ -15,6 +15,7 @@ describe('Environment Configuration', () => {
 
   it('should load configuration when all required variables are present', () => {
     process.env.RPC_URL = 'https://rpc-testnet.stellar.org';
+    process.env.HORIZON_URL = 'https://horizon-testnet.stellar.org';
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
@@ -27,6 +28,7 @@ describe('Environment Configuration', () => {
     expect(config).toBeDefined();
     expect(config.PORT).toBe('3000'); // Default
     expect(config.RPC_URL).toBe(process.env.RPC_URL);
+    expect(config.HORIZON_URL).toBe(process.env.HORIZON_URL);
   });
 
   it('should throw ConfigError if required variables are missing', () => {
@@ -39,21 +41,23 @@ describe('Environment Configuration', () => {
 
   it('should throw ConfigError if variables are invalid (e.g., bad URL)', () => {
     process.env.RPC_URL = 'not-a-url';
+    process.env.HORIZON_URL = 'https://horizon-testnet.stellar.org';
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
-    process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
-    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 
     expect(() => loadConfig()).toThrow(ConfigError);
   });
 
   it('should throw ConfigError if DATABASE_URL is missing', () => {
     process.env.RPC_URL = 'https://rpc-testnet.stellar.org';
+    process.env.HORIZON_URL = 'https://horizon-testnet.stellar.org';
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
+    process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
     delete process.env.DATABASE_URL;
 
     expect(() => loadConfig()).toThrow(ConfigError);
@@ -62,6 +66,7 @@ describe('Environment Configuration', () => {
 
   it('should throw ConfigError if JWT_SECRET is too short', () => {
     process.env.RPC_URL = 'https://rpc-testnet.stellar.org';
+    process.env.HORIZON_URL = 'https://horizon-testnet.stellar.org';
     process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
     process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
     process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';

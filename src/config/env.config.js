@@ -5,6 +5,7 @@ require('dotenv').config();
 const envSchema = z.object({
   PORT: z.string().default('3000'),
   RPC_URL: z.string().url(),
+  HORIZON_URL: z.string().url(),
   NETWORK_PASSPHRASE: z.string().min(1),
   CONTRACT_ID: z.string().min(1),
   FEE_BUMP_SECRET_KEY: z.string().min(1),

@@ -10,8 +10,9 @@ const crypto = require('crypto');
  *
  * @param {Object} [deps] - Dependencies
  * @param {Object} [deps.config] - Application configuration.
+ * @param {Object} [deps.horizonService] - The horizon network service
  */
-const createWalletProvider = ({ config } = {}) => {
+const createWalletProvider = ({ config, horizonService } = {}) => {
   /**
    * Executes a managed wallet top-up through the underlying provider.
    *
@@ -61,14 +62,16 @@ const createWalletProvider = ({ config } = {}) => {
   };
 
   /**
-   * Retrieves the mock balance of the wallet.
+   * Retrieves the real on-chain native balance of the wallet from the network.
    *
    * @param {string} walletAddress - The managed wallet address.
    * @returns {Promise<string>} The balance as a string.
    */
-  const getBalance = async (_walletAddress) => {
-    // Stub: Returns a mock balance of 1000.00 for testing withdrawals.
-    return '1000.00';
+  const getBalance = async (walletAddress) => {
+    if (!horizonService) {
+      throw new Error('horizonService is required to fetch real balances');
+    }
+    return horizonService.getAccountBalance(walletAddress);
   };
 
   return { fundWallet, withdrawFromWallet, getBalance };
