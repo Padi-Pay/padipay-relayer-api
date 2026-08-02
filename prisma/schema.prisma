@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  wallets      Wallet[]
+  intents      EscrowIntent[]
+}
+
+model Wallet {
+  id                 String   @id @default(uuid())
+  userId             String
+  publicKey          String   @unique
+  encryptedSecretKey String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EscrowIntent {
+  id              String        @id @default(uuid())
+  userId          String?
+  buyerAddress    String
+  sellerAddress   String
+  amount          String
+  asset           String?
+  actionType      String        @default("CREATE")
+  status          String        @default("PENDING")
+  onChainEscrowId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transactions    Transaction[]
+}
+
+model Transaction {
+  id             String       @id @default(uuid())
+  escrowIntentId String
+  txHash         String       @unique
+  status         String       @default("SUBMITTED")
+  createdAt      DateTime     @default(now())
+  escrowIntent   EscrowIntent @relation(fields: [escrowIntentId], references: [id], onDelete: Cascade)
+}

@@ -14,10 +14,12 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
    */
   router.post('/create-escrow', validate(createEscrowSchema), async (req, res, next) => {
     try {
-      const unsignedXdr = await escrowService.createEscrow(req.body);
+      const { unsignedXdr, escrowIntentId } = await escrowService.createEscrow(req.body);
       const signedXdr = stellarService.signTransaction(unsignedXdr);
       const result = await stellarService.submitTransaction(signedXdr);
       
+      await escrowService.recordTransaction(escrowIntentId, result.hash, 'SUCCESS'); // Assuming success for now
+
       res.status(200).json({
         message: 'Escrow created successfully',
         result,
@@ -40,17 +42,18 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
       }
 
       let unsignedXdr;
+      let escrowIntentId;
       const escrowId = params.id;
 
       switch (actionType) {
         case 'LOCK':
-          unsignedXdr = await escrowService.lockEscrow({ escrowId });
+          ({ unsignedXdr, escrowIntentId } = await escrowService.lockEscrow({ escrowId }));
           break;
         case 'RELEASE':
-          unsignedXdr = await escrowService.releaseEscrow({ escrowId });
+          ({ unsignedXdr, escrowIntentId } = await escrowService.releaseEscrow({ escrowId }));
           break;
         case 'REFUND':
-          unsignedXdr = await escrowService.refundEscrow({ escrowId });
+          ({ unsignedXdr, escrowIntentId } = await escrowService.refundEscrow({ escrowId }));
           break;
         case 'DISPUTE':
           throw new Error('DISPUTE action not yet implemented in service layer.');
@@ -60,6 +63,8 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
 
       const signedXdr = stellarService.signTransaction(unsignedXdr);
       const result = await stellarService.submitTransaction(signedXdr);
+      
+      await escrowService.recordTransaction(escrowIntentId, result.hash, 'SUCCESS');
 
       res.status(200).json({
         message: `Escrow ${actionType} action submitted successfully`,

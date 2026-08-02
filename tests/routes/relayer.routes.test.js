@@ -15,6 +15,7 @@ describe('Relayer Routes', () => {
       lockEscrow: jest.fn(),
       releaseEscrow: jest.fn(),
       refundEscrow: jest.fn(),
+      recordTransaction: jest.fn(),
     };
 
     mockStellarService = {
@@ -50,18 +51,21 @@ describe('Relayer Routes', () => {
     it('should call services and return 200 on success', async () => {
       const payload = { buyer: 'G_BUYER', seller: 'G_SELLER', amount: '1000' };
       
-      mockEscrowService.createEscrow.mockResolvedValue('unsigned_xdr');
+      mockEscrowService.createEscrow.mockResolvedValue({ unsignedXdr: 'unsigned_xdr', escrowIntentId: 'intent-123' });
       mockStellarService.signTransaction.mockReturnValue('signed_xdr');
-      mockStellarService.submitTransaction.mockResolvedValue({ hash: '123' });
+      mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-123' });
+      mockEscrowService.recordTransaction.mockResolvedValue({});
 
       const res = await request(app).post('/api/relayer/create-escrow').send(payload);
       
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow created successfully');
-      expect(res.body.result).toEqual({ hash: '123' });
+      expect(res.body.result).toEqual({ hash: 'tx-123' });
+      
       expect(mockEscrowService.createEscrow).toHaveBeenCalledWith(payload);
       expect(mockStellarService.signTransaction).toHaveBeenCalledWith('unsigned_xdr');
       expect(mockStellarService.submitTransaction).toHaveBeenCalledWith('signed_xdr');
+      expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-123', 'tx-123', 'SUCCESS');
     });
   });
 
@@ -86,11 +90,11 @@ describe('Relayer Routes', () => {
     });
 
     it('should call lockEscrow and submit for LOCK action', async () => {
-      const payload = { actionType: 'LOCK', params: { id: '1' } };
+      const payload = { actionType: 'LOCK', params: { id: 'intent-123' } };
       
-      mockEscrowService.lockEscrow.mockResolvedValue('unsigned_lock');
+      mockEscrowService.lockEscrow.mockResolvedValue({ unsignedXdr: 'unsigned_lock', escrowIntentId: 'intent-123' });
       mockStellarService.signTransaction.mockReturnValue('signed_lock');
-      mockStellarService.submitTransaction.mockResolvedValue({ hash: '456' });
+      mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-456' });
 
       const res = await request(app)
         .post('/api/relayer/submit-escrow')
@@ -98,8 +102,10 @@ describe('Relayer Routes', () => {
         
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow LOCK action submitted successfully');
-      expect(res.body.result).toEqual({ hash: '456' });
-      expect(mockEscrowService.lockEscrow).toHaveBeenCalledWith({ escrowId: '1' });
+      expect(res.body.result).toEqual({ hash: 'tx-456' });
+      
+      expect(mockEscrowService.lockEscrow).toHaveBeenCalledWith({ escrowId: 'intent-123' });
+      expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-123', 'tx-456', 'SUCCESS');
     });
   });
 

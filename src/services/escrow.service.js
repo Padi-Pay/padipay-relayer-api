@@ -5,19 +5,30 @@ const StellarSdk = require('stellar-sdk');
  * @param {Object} deps - Dependencies
  * @param {Object} deps.transactionBuilder - The injected transaction builder.
  * @param {Object} deps.config - Application configuration.
+ * @param {Object} deps.escrowRepository - Escrow intent persistence.
+ * @param {Object} deps.transactionRepository - Transaction persistence.
  */
-const createEscrowService = ({ transactionBuilder, config }) => {
+const createEscrowService = ({ transactionBuilder, config, escrowRepository, transactionRepository }) => {
   /**
    * Constructs an unsigned contract invocation for creating an escrow.
    * @param {Object} params - Escrow parameters
    * @param {string} params.buyer - Buyer's address
    * @param {string} params.seller - Seller's address
    * @param {string} params.amount - Escrow amount (string to handle large numbers safely)
-   * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
+   * @returns {Promise<Object>} Base64 encoded unsigned transaction XDR and the intent ID
    */
   const createEscrow = async (params) => {
+    const { buyer, seller, amount, asset } = params;
 
-    const { buyer, seller, amount } = params;
+    // Persist intent to DB
+    const escrowIntent = await escrowRepository.create({
+      buyerAddress: buyer,
+      sellerAddress: seller,
+      amount: amount,
+      asset: asset || 'XLM',
+      actionType: 'CREATE',
+      status: 'PENDING',
+    });
 
     const scValParams = [
       StellarSdk.nativeToScVal(buyer, { type: 'address' }),
@@ -25,80 +36,101 @@ const createEscrowService = ({ transactionBuilder, config }) => {
       StellarSdk.nativeToScVal(amount, { type: 'i128' }),
     ];
 
-    // The relayer sponsor account acts as the transaction source
     const sourceAddress = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY).publicKey();
 
-    return await transactionBuilder.buildTransaction(
+    const unsignedXdr = await transactionBuilder.buildTransaction(
       sourceAddress,
       'create_escrow',
       scValParams
     );
+
+    return { unsignedXdr, escrowIntentId: escrowIntent.id };
   };
 
   /**
    * Constructs an unsigned contract invocation for locking funds in an escrow.
    * @param {Object} params - Escrow parameters
-   * @param {string} params.escrowId - The unique identifier of the escrow
-   * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
+   * @param {string} params.escrowId - The unique identifier of the escrow intent
+   * @returns {Promise<Object>} Base64 encoded unsigned transaction XDR and intent ID
    */
   const lockEscrow = async ({ escrowId }) => {
+    // Assuming escrowId here refers to the EscrowIntent ID (off-chain DB ID)
+    const intent = await escrowRepository.findById(escrowId);
+    if (!intent) {
+      throw new Error('Escrow Intent not found');
+    }
 
     const scValParams = [
-      StellarSdk.nativeToScVal(escrowId, { type: 'u64' }), // Assuming u64 for escrowId
+      StellarSdk.nativeToScVal(intent.onChainEscrowId || escrowId, { type: 'u64' }), // Fallback for now
     ];
 
     const sourceAddress = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY).publicKey();
 
-    return await transactionBuilder.buildTransaction(
+    const unsignedXdr = await transactionBuilder.buildTransaction(
       sourceAddress,
-      'lock_funds', // The presumed contract method
+      'lock_funds', 
       scValParams
     );
+    
+    return { unsignedXdr, escrowIntentId: intent.id };
   };
 
   /**
    * Constructs an unsigned contract invocation for releasing funds to the seller.
-   * @param {Object} params - Escrow parameters
-   * @param {string} params.escrowId - The unique identifier of the escrow
-   * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const releaseEscrow = async ({ escrowId }) => {
+    const intent = await escrowRepository.findById(escrowId);
+    if (!intent) throw new Error('Escrow Intent not found');
 
     const scValParams = [
-      StellarSdk.nativeToScVal(escrowId, { type: 'u64' }),
+      StellarSdk.nativeToScVal(intent.onChainEscrowId || escrowId, { type: 'u64' }),
     ];
 
     const sourceAddress = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY).publicKey();
 
-    return await transactionBuilder.buildTransaction(
+    const unsignedXdr = await transactionBuilder.buildTransaction(
       sourceAddress,
-      'release', // The presumed contract method
+      'release', 
       scValParams
     );
+
+    return { unsignedXdr, escrowIntentId: intent.id };
   };
 
   /**
    * Constructs an unsigned contract invocation for refunding funds to the buyer.
-   * @param {Object} params - Escrow parameters
-   * @param {string} params.escrowId - The unique identifier of the escrow
-   * @returns {Promise<string>} Base64 encoded unsigned transaction XDR
    */
   const refundEscrow = async ({ escrowId }) => {
+    const intent = await escrowRepository.findById(escrowId);
+    if (!intent) throw new Error('Escrow Intent not found');
 
     const scValParams = [
-      StellarSdk.nativeToScVal(escrowId, { type: 'u64' }),
+      StellarSdk.nativeToScVal(intent.onChainEscrowId || escrowId, { type: 'u64' }),
     ];
 
     const sourceAddress = StellarSdk.Keypair.fromSecret(config.FEE_BUMP_SECRET_KEY).publicKey();
 
-    return await transactionBuilder.buildTransaction(
+    const unsignedXdr = await transactionBuilder.buildTransaction(
       sourceAddress,
-      'refund', // The presumed contract method
+      'refund', 
       scValParams
     );
+
+    return { unsignedXdr, escrowIntentId: intent.id };
   };
 
-  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow };
+  /**
+   * Records a transaction submission for a specific intent.
+   */
+  const recordTransaction = async (escrowIntentId, txHash, status = 'SUBMITTED') => {
+    return transactionRepository.create({
+      escrowIntentId,
+      txHash,
+      status
+    });
+  };
+
+  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow, recordTransaction };
 };
 
 module.exports = { createEscrowService };

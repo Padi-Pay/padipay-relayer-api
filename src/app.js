@@ -22,9 +22,24 @@ try {
 const server = new StellarSdk.SorobanRpc.Server(config.RPC_URL);
 const contract = new StellarSdk.Contract(config.CONTRACT_ID);
 
+// Initialize Prisma
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Initialize Repositories
+const { createUserRepository } = require('./repositories/user.repository');
+const { createWalletRepository } = require('./repositories/wallet.repository');
+const { createEscrowRepository } = require('./repositories/escrow.repository');
+const { createTransactionRepository } = require('./repositories/transaction.repository');
+
+createUserRepository({ prisma });
+createWalletRepository({ prisma });
+const escrowRepository = createEscrowRepository({ prisma });
+const transactionRepository = createTransactionRepository({ prisma });
+
 // Bootstrap Dependency Injection Container
 const transactionBuilder = createTransactionBuilder({ server, contract, config });
-const escrowService = createEscrowService({ transactionBuilder, config });
+const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
 const horizonService = createHorizonService({ server });
 const stellarService = createStellarService({ config, server });
 
