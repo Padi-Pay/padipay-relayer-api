@@ -84,28 +84,44 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
     try {
       const { actionType, params } = req.body;
       
-      if (!params || !params.id) {
-        return res.status(400).json({ message: 'Escrow ID is required in params' });
-      }
-
       let unsignedXdr;
       let escrowIntentId;
-      const escrowId = params.id;
 
-      switch (actionType) {
-        case 'LOCK':
-          ({ unsignedXdr, escrowIntentId } = await escrowService.lockEscrow({ escrowId }));
-          break;
-        case 'RELEASE':
-          ({ unsignedXdr, escrowIntentId } = await escrowService.releaseEscrow({ escrowId }));
-          break;
-        case 'REFUND':
-          ({ unsignedXdr, escrowIntentId } = await escrowService.refundEscrow({ escrowId }));
-          break;
-        case 'DISPUTE':
-          throw new Error('DISPUTE action not yet implemented in service layer.');
-        default:
-          throw new Error(`Unsupported actionType: ${actionType}`);
+      if (actionType === 'CREATE') {
+        if (!params || !params.buyer || !params.seller || !params.amount) {
+          return res.status(400).json({ message: 'buyer, seller, and amount are required for CREATE' });
+        }
+        
+        const buyerWallet = await walletRepository.findByPublicKey(params.buyer);
+        const sellerWallet = await walletRepository.findByPublicKey(params.seller);
+        
+        if (!buyerWallet || !sellerWallet) {
+          return res.status(400).json({ message: 'Buyer or seller not found in database' });
+        }
+
+        ({ unsignedXdr, escrowIntentId } = await escrowService.createEscrow(params));
+      } else {
+        if (!params || !params.id) {
+          return res.status(400).json({ message: 'Escrow ID is required in params' });
+        }
+
+        const escrowId = params.id;
+
+        switch (actionType) {
+          case 'LOCK':
+            ({ unsignedXdr, escrowIntentId } = await escrowService.lockEscrow({ escrowId }));
+            break;
+          case 'RELEASE':
+            ({ unsignedXdr, escrowIntentId } = await escrowService.releaseEscrow({ escrowId }));
+            break;
+          case 'REFUND':
+            ({ unsignedXdr, escrowIntentId } = await escrowService.refundEscrow({ escrowId }));
+            break;
+          case 'DISPUTE':
+            throw new Error('DISPUTE action not yet implemented in service layer.');
+          default:
+            throw new Error(`Unsupported actionType: ${actionType}`);
+        }
       }
 
       const signedXdr = stellarService.signTransaction(unsignedXdr);

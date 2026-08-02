@@ -26,6 +26,16 @@ jest.mock('../../src/services/escrow-funding.service', () => ({
   }),
 }));
 
+const mockFindByPublicKey = jest.fn();
+
+jest.mock('../../src/repositories/wallet.repository', () => {
+  return {
+    WalletRepository: jest.fn().mockImplementation(() => ({
+      findByPublicKey: mockFindByPublicKey,
+    })),
+  };
+});
+
 const { createEscrowFundingService } = require('../../src/services/escrow-funding.service');
 const escrowFundingServiceMock = createEscrowFundingService();
 
@@ -38,7 +48,6 @@ describe('Relayer Routes', () => {
   let mockEscrowService;
   let mockStellarService;
   let mockHorizonService;
-
   beforeEach(() => {
     mockEscrowService = {
       createEscrow: jest.fn(),
@@ -72,6 +81,7 @@ describe('Relayer Routes', () => {
   });
 
   beforeEach(() => {
+    mockFindByPublicKey.mockReset();
     jest.clearAllMocks();
   });
 
@@ -138,6 +148,43 @@ describe('Relayer Routes', () => {
       
       expect(mockEscrowService.lockEscrow).toHaveBeenCalledWith({ escrowId: 'intent-123' });
       expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-123', 'tx-456', 'SUCCESS');
+    });
+
+    it('should fail CREATE action if buyer or seller are not in DB', async () => {
+      const payload = { actionType: 'CREATE', params: { buyer: 'G_BUYER', seller: 'G_SELLER', amount: '100' } };
+      mockFindByPublicKey.mockResolvedValueOnce(null);
+
+      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Buyer or seller not found in database');
+    });
+
+    it('should fail CREATE action if params are missing', async () => {
+      const payload = { actionType: 'CREATE', params: { buyer: 'G_BUYER' } };
+      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('buyer, seller, and amount are required for CREATE');
+    });
+
+    it('should call createEscrow and submit for CREATE action', async () => {
+      const payload = { actionType: 'CREATE', params: { buyer: 'G_BUYER', seller: 'G_SELLER', amount: '100' } };
+      
+      mockFindByPublicKey.mockResolvedValue({ id: 'w-1', publicKey: 'G_SOMETHING' });
+      
+      mockEscrowService.createEscrow.mockResolvedValue({ unsignedXdr: 'unsigned_create', escrowIntentId: 'intent-999' });
+      mockStellarService.signTransaction.mockReturnValue('signed_create');
+      mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-789' });
+
+      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+        
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Escrow CREATE action submitted successfully');
+      expect(res.body.result).toEqual({ hash: 'tx-789' });
+      
+      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith(payload.params);
+      expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-999', 'tx-789', 'SUCCESS');
     });
   });
 
