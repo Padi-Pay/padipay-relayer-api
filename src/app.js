@@ -4,6 +4,7 @@ const express = require('express');
 const { createRelayerRoutes } = require('./routes/relayer.routes');
 const healthRoutes = require('./routes/health.routes');
 const errorHandler = require('./middleware/error.middleware');
+const authenticate = require('./middleware/auth.middleware');
 
 const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
@@ -50,11 +51,13 @@ const PORT = config.PORT;
 app.use(express.json());
 
 const authRoutes = require('./routes/auth.routes');
+const usersRoutes = require('./routes/users.routes');
 
 // API Routes
 const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
 app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users/me', authenticate, usersRoutes);
 app.use('/api/relayer', relayerRoutes);
 
 // Error Handling Middleware
