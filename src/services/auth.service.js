@@ -5,7 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const AppError = require('../errors/AppError');
 const { loadConfig } = require('../config/env.config');
 
-const createAuthService = ({ userRepository, passwordResetTokenRepository }) => {
+const createAuthService = ({ userRepository, passwordResetTokenRepository, walletProvider, prisma, UserRepository, WalletRepository }) => {
   const register = async ({ email, password }) => {
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
@@ -15,9 +15,25 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository }) => 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await userRepository.create({
-      email,
-      password: hashedPassword,
+    // Atomically provision user and wallet
+    const user = await prisma.$transaction(async (tx) => {
+      const txUserRepository = new UserRepository(tx);
+      const txWalletRepository = new WalletRepository(tx);
+
+      const newUser = await txUserRepository.create({
+        email,
+        password: hashedPassword,
+      });
+
+      const { address } = await walletProvider.createWallet(newUser.id);
+      
+      await txWalletRepository.create({
+        userId: newUser.id,
+        publicKey: address,
+        encryptedSecretKey: 'managed-by-provider',
+      });
+
+      return newUser;
     });
 
     const userWithoutPassword = { ...user };
@@ -71,10 +87,26 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository }) => 
           throw new AppError('Google account mismatch', 401);
         }
       } else {
-        user = await userRepository.create({
-          email,
-          name,
-          googleId,
+        // New user: atomically provision user and wallet
+        user = await prisma.$transaction(async (tx) => {
+          const txUserRepository = new UserRepository(tx);
+          const txWalletRepository = new WalletRepository(tx);
+
+          const newUser = await txUserRepository.create({
+            email,
+            name,
+            googleId,
+          });
+
+          const { address } = await walletProvider.createWallet(newUser.id);
+          
+          await txWalletRepository.create({
+            userId: newUser.id,
+            publicKey: address,
+            encryptedSecretKey: 'managed-by-provider',
+          });
+
+          return newUser;
         });
       }
 

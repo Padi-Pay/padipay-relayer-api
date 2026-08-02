@@ -23,6 +23,12 @@ describe('AuthService', () => {
   let authService;
   let mockUserRepository;
   let mockPasswordResetTokenRepository;
+  let mockTxUserRepository;
+  let mockTxWalletRepository;
+  let mockPrisma;
+  let mockWalletProvider;
+  let MockUserRepository;
+  let MockWalletRepository;
 
   beforeEach(() => {
     mockUserRepository = {
@@ -36,9 +42,24 @@ describe('AuthService', () => {
       markUsed: jest.fn(),
       deleteExpiredByUserId: jest.fn(),
     };
+    mockTxUserRepository = { create: jest.fn() };
+    mockTxWalletRepository = { create: jest.fn() };
+    MockUserRepository = jest.fn().mockImplementation(() => mockTxUserRepository);
+    MockWalletRepository = jest.fn().mockImplementation(() => mockTxWalletRepository);
+    mockPrisma = {
+      $transaction: jest.fn(async (cb) => cb('mock-tx'))
+    };
+    mockWalletProvider = {
+      createWallet: jest.fn().mockResolvedValue({ address: 'G_MOCK_TEST' })
+    };
+
     authService = createAuthService({ 
       userRepository: mockUserRepository, 
-      passwordResetTokenRepository: mockPasswordResetTokenRepository 
+      passwordResetTokenRepository: mockPasswordResetTokenRepository,
+      walletProvider: mockWalletProvider,
+      prisma: mockPrisma,
+      UserRepository: MockUserRepository,
+      WalletRepository: MockWalletRepository
     });
     jest.clearAllMocks();
   });
@@ -51,15 +72,21 @@ describe('AuthService', () => {
         .toThrow(AppError);
     });
 
-    it('hashes password and registers user successfully', async () => {
+    it('hashes password, registers user and provisions wallet successfully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com', password: 'hashedpassword' });
+      mockTxUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com', password: 'hashedpassword' });
       
       const user = await authService.register({ email: 'test@test.com', password: 'Password1!' });
       
-      expect(mockUserRepository.create).toHaveBeenCalledWith({
+      expect(mockTxUserRepository.create).toHaveBeenCalledWith({
         email: 'test@test.com',
         password: expect.any(String)
+      });
+      expect(mockWalletProvider.createWallet).toHaveBeenCalledWith('1');
+      expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
+        userId: '1',
+        publicKey: 'G_MOCK_TEST',
+        encryptedSecretKey: 'managed-by-provider'
       });
       expect(user).not.toHaveProperty('password');
       expect(user.id).toBe('1');
@@ -69,7 +96,7 @@ describe('AuthService', () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       
       let createdHashes = [];
-      mockUserRepository.create.mockImplementation(async (data) => {
+      mockTxUserRepository.create.mockImplementation(async (data) => {
         createdHashes.push(data.password);
         return { id: '1', ...data };
       });
@@ -115,21 +142,27 @@ describe('AuthService', () => {
   });
 
   describe('googleSignIn', () => {
-    it('creates new user if email does not exist', async () => {
+    it('creates new user and provisions wallet if email does not exist', async () => {
       const mockVerifyIdToken = jest.fn().mockResolvedValue({
         getPayload: () => ({ email: 'new@google.com', name: 'Google User', sub: 'g-123' })
       });
       OAuth2Client.mockImplementation(() => ({ verifyIdToken: mockVerifyIdToken }));
       
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockUserRepository.create.mockResolvedValue({ id: '2', email: 'new@google.com', googleId: 'g-123', role: 'USER' });
+      mockTxUserRepository.create.mockResolvedValue({ id: '2', email: 'new@google.com', googleId: 'g-123', role: 'USER' });
 
       const { user, token } = await authService.googleSignIn({ idToken: 'valid-token' });
 
-      expect(mockUserRepository.create).toHaveBeenCalledWith({
+      expect(mockTxUserRepository.create).toHaveBeenCalledWith({
         email: 'new@google.com',
         name: 'Google User',
         googleId: 'g-123',
+      });
+      expect(mockWalletProvider.createWallet).toHaveBeenCalledWith('2');
+      expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
+        userId: '2',
+        publicKey: 'G_MOCK_TEST',
+        encryptedSecretKey: 'managed-by-provider'
       });
       expect(user.id).toBe('2');
       expect(token).toBeDefined();
