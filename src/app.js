@@ -10,6 +10,7 @@ const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
 const { createHorizonService } = require('./services/horizon.service');
 const { createStellarService } = require('./services/stellar.service');
+const { createEmbeddedWalletProvider } = require('./providers/embedded-wallet.provider');
 
 let config;
 try {
@@ -43,6 +44,8 @@ const transactionBuilder = createTransactionBuilder({ server, contract, config }
 const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
 const horizonService = createHorizonService({ server });
 const stellarService = createStellarService({ config, server });
+// eslint-disable-next-line no-unused-vars
+const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
 const app = express();
 const PORT = config.PORT;
@@ -52,12 +55,14 @@ app.use(express.json());
 
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
+const accountsRoutes = require('./routes/accounts.routes');
 
 // API Routes
 const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
 app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users/me', authenticate, usersRoutes);
+app.use('/api/accounts/me', authenticate, accountsRoutes);
 app.use('/api/relayer', relayerRoutes);
 
 // Error Handling Middleware
