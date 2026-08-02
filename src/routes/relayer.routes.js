@@ -1,29 +1,94 @@
 const express = require('express');
-const router = express.Router();
 const { validate } = require('../middleware/validate.middleware');
-const { submitEscrowSchema } = require('../validation/schemas/escrow.schema');
-
-// TODO: Import escrow service and horizon service (to be implemented in Phase 4)
-// const escrowService = require('../services/escrow.service');
-// const horizonService = require('../services/horizon.service');
+const { submitEscrowSchema, createEscrowSchema } = require('../validation/schemas/escrow.schema');
 
 /**
- * POST /submit-escrow
- * Endpoint for the WhatsApp bot to request a new escrow action.
+ * Factory to create relayer routes with injected dependencies.
  */
-router.post('/submit-escrow', validate(submitEscrowSchema), async (req, res) => {
-  // TODO: Link this route to escrowService.processEscrowAction()
-  res.status(200).json({ message: 'submit-escrow route scaffolded' });
-});
+const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) => {
+  const router = express.Router();
 
-/**
- * GET /status/:txId
- * Endpoint to check the on-chain status of a previously submitted transaction.
- */
-router.get('/status/:txId', async (req, res) => {
-  const { txId } = req.params;
-  // TODO: Link this route to horizonService.getTransactionStatus()
-  res.status(200).json({ message: 'status route scaffolded', txId });
-});
+  /**
+   * POST /create-escrow
+   * Creates a new escrow agreement on-chain.
+   */
+  router.post('/create-escrow', validate(createEscrowSchema), async (req, res, next) => {
+    try {
+      const unsignedXdr = await escrowService.createEscrow(req.body);
+      const signedXdr = stellarService.signTransaction(unsignedXdr);
+      const result = await stellarService.submitTransaction(signedXdr);
+      
+      res.status(200).json({
+        message: 'Escrow created successfully',
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
-module.exports = router;
+  /**
+   * POST /submit-escrow
+   * Endpoint for the WhatsApp bot to request an escrow lifecycle action.
+   */
+  router.post('/submit-escrow', validate(submitEscrowSchema), async (req, res, next) => {
+    try {
+      const { actionType, params } = req.body;
+      
+      if (!params || !params.id) {
+        return res.status(400).json({ message: 'Escrow ID is required in params' });
+      }
+
+      let unsignedXdr;
+      const escrowId = params.id;
+
+      switch (actionType) {
+        case 'LOCK':
+          unsignedXdr = await escrowService.lockEscrow({ escrowId });
+          break;
+        case 'RELEASE':
+          unsignedXdr = await escrowService.releaseEscrow({ escrowId });
+          break;
+        case 'REFUND':
+          unsignedXdr = await escrowService.refundEscrow({ escrowId });
+          break;
+        case 'DISPUTE':
+          throw new Error('DISPUTE action not yet implemented in service layer.');
+        default:
+          throw new Error(`Unsupported actionType: ${actionType}`);
+      }
+
+      const signedXdr = stellarService.signTransaction(unsignedXdr);
+      const result = await stellarService.submitTransaction(signedXdr);
+
+      res.status(200).json({
+        message: `Escrow ${actionType} action submitted successfully`,
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * GET /status/:txId
+   * Endpoint to check the on-chain status of a previously submitted transaction.
+   */
+  router.get('/status/:txId', async (req, res, next) => {
+    try {
+      const { txId } = req.params;
+      const status = await horizonService.getTransactionStatus(txId);
+      
+      res.status(200).json({
+        message: 'Transaction status retrieved',
+        status,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+};
+
+module.exports = { createRelayerRoutes };
