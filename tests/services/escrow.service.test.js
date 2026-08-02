@@ -4,7 +4,7 @@ const StellarSdk = require('stellar-sdk');
 describe('Escrow Service', () => {
   let escrowService;
   let transactionBuilderMock;
-  let mockEscrowRepository;
+  let mockEscrowIntentRepository;
   let mockTransactionRepository;
 
   const mockConfig = {
@@ -18,7 +18,7 @@ describe('Escrow Service', () => {
       buildTransaction: jest.fn().mockResolvedValue('MOCK_XDR')
     };
 
-    mockEscrowRepository = {
+    mockEscrowIntentRepository = {
       create: jest.fn().mockResolvedValue({ id: 'intent-123' }),
       findById: jest.fn().mockResolvedValue({ id: 'intent-123', onChainEscrowId: '123' })
     };
@@ -30,7 +30,7 @@ describe('Escrow Service', () => {
     escrowService = createEscrowService({
       transactionBuilder: transactionBuilderMock,
       config: mockConfig,
-      escrowRepository: mockEscrowRepository,
+      escrowIntentRepository: mockEscrowIntentRepository,
       transactionRepository: mockTransactionRepository
     });
   });
@@ -50,7 +50,7 @@ describe('Escrow Service', () => {
     expect(unsignedXdr).toBe('MOCK_XDR');
     expect(escrowIntentId).toBe('intent-123');
     
-    expect(mockEscrowRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockEscrowIntentRepository.create).toHaveBeenCalledWith(expect.objectContaining({
       buyerAddress: validBuyer,
       sellerAddress: validSeller,
       amount: '100',
@@ -70,7 +70,7 @@ describe('Escrow Service', () => {
     expect(unsignedXdr).toBe('MOCK_XDR');
     expect(escrowIntentId).toBe('intent-123');
     
-    expect(mockEscrowRepository.findById).toHaveBeenCalledWith('intent-123');
+    expect(mockEscrowIntentRepository.findById).toHaveBeenCalledWith('intent-123');
     
     expect(transactionBuilderMock.buildTransaction).toHaveBeenCalledWith(
       mockSponsorPublicKey,
