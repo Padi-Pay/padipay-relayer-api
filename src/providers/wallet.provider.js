@@ -60,7 +60,18 @@ const createWalletProvider = ({ config } = {}) => {
     };
   };
 
-  return { fundWallet, withdrawFromWallet };
+  /**
+   * Retrieves the mock balance of the wallet.
+   *
+   * @param {string} walletAddress - The managed wallet address.
+   * @returns {Promise<string>} The balance as a string.
+   */
+  const getBalance = async (_walletAddress) => {
+    // Stub: Returns a mock balance of 1000.00 for testing withdrawals.
+    return '1000.00';
+  };
+
+  return { fundWallet, withdrawFromWallet, getBalance };
 };
 
 module.exports = { createWalletProvider };
