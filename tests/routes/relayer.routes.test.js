@@ -5,11 +5,8 @@ const AppError = require('../../src/errors/AppError');
 
 const JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long';
 
-// Mock prisma so repository construction never touches a real database.
 jest.mock('../../src/clients/prisma.client', () => ({}));
 
-// Mock config so the route handler's lazy server/contract construction and
-// the auth middleware's token verification never need a real .env.
 jest.mock('../../src/config/env.config', () => {
   const { StrKey, Keypair } = require('stellar-sdk');
   return {
@@ -23,8 +20,6 @@ jest.mock('../../src/config/env.config', () => {
   };
 });
 
-// Mock the escrow funding orchestration service so route tests never touch
-// the database or a real Soroban RPC endpoint.
 jest.mock('../../src/services/escrow-funding.service', () => ({
   createEscrowFundingService: jest.fn().mockReturnValue({
     fundEscrow: jest.fn(),
@@ -34,14 +29,39 @@ jest.mock('../../src/services/escrow-funding.service', () => ({
 const { createEscrowFundingService } = require('../../src/services/escrow-funding.service');
 const escrowFundingServiceMock = createEscrowFundingService();
 
-const relayerRoutes = require('../../src/routes/relayer.routes');
+const { createRelayerRoutes } = require('../../src/routes/relayer.routes');
 const errorHandler = require('../../src/middleware/error.middleware');
 
 describe('Relayer Routes', () => {
   let app;
   let authToken;
+  let mockEscrowService;
+  let mockStellarService;
+  let mockHorizonService;
 
-  beforeAll(() => {
+  beforeEach(() => {
+    mockEscrowService = {
+      createEscrow: jest.fn(),
+      lockEscrow: jest.fn(),
+      releaseEscrow: jest.fn(),
+      refundEscrow: jest.fn(),
+    };
+
+    mockStellarService = {
+      signTransaction: jest.fn(),
+      submitTransaction: jest.fn(),
+    };
+
+    mockHorizonService = {
+      getTransactionStatus: jest.fn(),
+    };
+
+    const relayerRoutes = createRelayerRoutes({
+      escrowService: mockEscrowService,
+      stellarService: mockStellarService,
+      horizonService: mockHorizonService,
+    });
+
     app = express();
     app.use(express.json());
     app.use('/api/relayer', relayerRoutes);
@@ -54,24 +74,64 @@ describe('Relayer Routes', () => {
     jest.clearAllMocks();
   });
 
-  describe('POST /api/relayer/submit-escrow', () => {
+  describe('POST /api/relayer/create-escrow', () => {
     it('should fail validation when payload is missing', async () => {
-      const res = await request(app).post('/api/relayer/submit-escrow').send({});
+      const res = await request(app).post('/api/relayer/create-escrow').send({});
       
-      expect(res.status).toBe(400); // Validation error
+      expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.error).toBe('VALIDATION_ERROR');
     });
 
-    it('should pass validation and hit scaffolded route', async () => {
+    it('should call services and return 200 on success', async () => {
+      const payload = { buyer: 'G_BUYER', seller: 'G_SELLER', amount: '1000' };
+      
+      mockEscrowService.createEscrow.mockResolvedValue('unsigned_xdr');
+      mockStellarService.signTransaction.mockReturnValue('signed_xdr');
+      mockStellarService.submitTransaction.mockResolvedValue({ hash: '123' });
+
+      const res = await request(app).post('/api/relayer/create-escrow').send(payload);
+      
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Escrow created successfully');
+      expect(res.body.result).toEqual({ hash: '123' });
+      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith(payload);
+      expect(mockStellarService.signTransaction).toHaveBeenCalledWith('unsigned_xdr');
+      expect(mockStellarService.submitTransaction).toHaveBeenCalledWith('signed_xdr');
+    });
+  });
+
+  describe('POST /api/relayer/submit-escrow', () => {
+    it('should fail validation when payload is missing', async () => {
+      const res = await request(app).post('/api/relayer/submit-escrow').send({});
+      
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('should fail if params.id is missing', async () => {
       const payload = { actionType: 'LOCK' };
       
-      const res = await request(app)
-        .post('/api/relayer/submit-escrow')
-        .send(payload);
+      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+        
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Escrow ID is required in params');
+    });
+
+    it('should call lockEscrow and submit for LOCK action', async () => {
+      const payload = { actionType: 'LOCK', params: { id: '1' } };
+      
+      mockEscrowService.lockEscrow.mockResolvedValue('unsigned_lock');
+      mockStellarService.signTransaction.mockReturnValue('signed_lock');
+      mockStellarService.submitTransaction.mockResolvedValue({ hash: '456' });
+
+      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
         
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe('submit-escrow route scaffolded');
+      expect(res.body.message).toBe('Escrow LOCK action submitted successfully');
+      expect(res.body.result).toEqual({ hash: '456' });
+      expect(mockEscrowService.lockEscrow).toHaveBeenCalledWith({ escrowId: '1' });
     });
   });
 
@@ -163,12 +223,15 @@ describe('Relayer Routes', () => {
   });
 
   describe('GET /api/relayer/status/:txId', () => {
-    it('should hit scaffolded route and return txId', async () => {
+    it('should call horizonService and return status', async () => {
+      mockHorizonService.getTransactionStatus.mockResolvedValue({ status: 'SUCCESS' });
+      
       const res = await request(app).get('/api/relayer/status/12345');
       
       expect(res.status).toBe(200);
-      expect(res.body.txId).toBe('12345');
-      expect(res.body.message).toBe('status route scaffolded');
+      expect(res.body.message).toBe('Transaction status retrieved');
+      expect(res.body.status).toEqual({ status: 'SUCCESS' });
+      expect(mockHorizonService.getTransactionStatus).toHaveBeenCalledWith('12345');
     });
   });
 });
