@@ -1,10 +1,11 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const AppError = require('../errors/AppError');
 const { loadConfig } = require('../config/env.config');
 
-const createAuthService = ({ userRepository }) => {
+const createAuthService = ({ userRepository, passwordResetTokenRepository }) => {
   const register = async ({ email, password }) => {
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
@@ -93,7 +94,52 @@ const createAuthService = ({ userRepository }) => {
     }
   };
 
-  return { register, login, googleSignIn };
+  const requestPasswordReset = async ({ email }) => {
+    const user = await userRepository.findByEmail(email);
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+      if (passwordResetTokenRepository.deleteExpiredByUserId) {
+        await passwordResetTokenRepository.deleteExpiredByUserId(user.id);
+      }
+
+      await passwordResetTokenRepository.create({
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      });
+
+      // Log raw token for MVP testing (since no email service is hooked up)
+      console.log(`[PASSWORD RECOVERY] Reset token for ${email}: ${rawToken}`);
+    }
+
+    // Always return success to prevent email enumeration
+    return { success: true };
+  };
+
+  const resetPassword = async ({ token, newPassword }) => {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const resetRecord = await passwordResetTokenRepository.findByTokenHash(tokenHash);
+
+    if (!resetRecord || resetRecord.usedAt || resetRecord.expiresAt < new Date()) {
+      throw new AppError('Invalid or expired reset token', 400);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await userRepository.update(resetRecord.userId, { password: hashedPassword });
+    
+    // Mark token as used
+    await passwordResetTokenRepository.markUsed(resetRecord.id);
+
+    return { success: true };
+  };
+
+  return { register, login, googleSignIn, requestPasswordReset, resetPassword };
 };
 
 module.exports = { createAuthService };
