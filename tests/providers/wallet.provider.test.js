@@ -74,4 +74,23 @@ describe('Wallet Provider', () => {
       expect(receipt.network).toBe('unknown');
     });
   });
+
+  describe('getBalance', () => {
+    it('should fetch real balance from horizonService', async () => {
+      const mockHorizonService = {
+        getAccountBalance: jest.fn().mockResolvedValue('500.1234567'),
+      };
+      const provider = createWalletProvider({ horizonService: mockHorizonService });
+
+      const balance = await provider.getBalance('G_WALLET_ADDRESS');
+      
+      expect(mockHorizonService.getAccountBalance).toHaveBeenCalledWith('G_WALLET_ADDRESS');
+      expect(balance).toBe('500.1234567');
+    });
+
+    it('should throw an error if horizonService is not provided', async () => {
+      const provider = createWalletProvider();
+      await expect(provider.getBalance('G_WALLET_ADDRESS')).rejects.toThrow('horizonService is required to fetch real balances');
+    });
+  });
 });

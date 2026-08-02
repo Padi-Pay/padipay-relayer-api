@@ -1,14 +1,7 @@
 const request = require('supertest');
 const express = require('express');
-const walletsRoutes = require('../../src/routes/wallets.routes');
-const { WalletRepository } = require('../../src/repositories/wallet.repository');
-const { createWalletProvider } = require('../../src/providers/wallet.provider');
-
-jest.mock('../../src/clients/prisma.client', () => ({
-  wallet: {
-    findUnique: jest.fn(),
-  },
-}));
+const { createWalletsRoutes } = require('../../src/routes/wallets.routes');
+const errorHandler = require('../../src/middleware/error.middleware');
 
 jest.mock('../../src/middleware/auth.middleware', () => {
   return (req, res, next) => {
@@ -17,54 +10,37 @@ jest.mock('../../src/middleware/auth.middleware', () => {
   };
 });
 
-jest.mock('../../src/repositories/wallet.repository', () => {
-  const findByUserId = jest.fn();
-  return {
-    WalletRepository: jest.fn().mockImplementation(() => ({
-      findByUserId,
-    })),
-  };
-});
-
-jest.mock('../../src/providers/wallet.provider', () => {
-  const getBalance = jest.fn();
-  const withdrawFromWallet = jest.fn();
-  return {
-    createWalletProvider: jest.fn().mockImplementation(() => ({
-      getBalance,
-      withdrawFromWallet,
-    })),
-  };
-});
-
-const errorHandler = require('../../src/middleware/error.middleware');
-
-const app = express();
-app.use(express.json());
-// Inject mocked authenticate middleware
-app.use('/api/wallets', require('../../src/middleware/auth.middleware'), walletsRoutes);
-app.use(errorHandler);
-
 describe('Wallets Routes', () => {
-  let mockFindByUserId;
-  let mockGetBalance;
-  let mockWithdrawFromWallet;
-  
+  let mockWalletRepository;
+  let mockWalletProvider;
+  let app;
+
   beforeEach(() => {
-    mockFindByUserId = new WalletRepository().findByUserId;
-    mockGetBalance = createWalletProvider().getBalance;
-    mockWithdrawFromWallet = createWalletProvider().withdrawFromWallet;
-    
-    mockFindByUserId.mockReset();
-    mockGetBalance.mockReset();
-    mockWithdrawFromWallet.mockReset();
+    mockWalletRepository = {
+      findByUserId: jest.fn(),
+    };
+
+    mockWalletProvider = {
+      getBalance: jest.fn(),
+      withdrawFromWallet: jest.fn(),
+    };
+
+    const walletsRoutes = createWalletsRoutes({
+      walletRepository: mockWalletRepository,
+      walletProvider: mockWalletProvider,
+    });
+
+    app = express();
+    app.use(express.json());
+    app.use('/api/wallets', require('../../src/middleware/auth.middleware'), walletsRoutes);
+    app.use(errorHandler);
     
     jest.clearAllMocks();
   });
 
   describe('GET /api/wallets/me', () => {
     it('returns 404 if wallet is not found', async () => {
-      mockFindByUserId.mockResolvedValue(null);
+      mockWalletRepository.findByUserId.mockResolvedValue(null);
 
       const res = await request(app).get('/api/wallets/me');
       
@@ -74,7 +50,7 @@ describe('Wallets Routes', () => {
     });
 
     it('returns wallet details omitting secret key', async () => {
-      mockFindByUserId.mockResolvedValue({
+      mockWalletRepository.findByUserId.mockResolvedValue({
         id: 'w-1',
         userId: 'test-user-id',
         publicKey: 'G_MOCK_123',
@@ -90,7 +66,7 @@ describe('Wallets Routes', () => {
       expect(res.body.data).toHaveProperty('publicKey', 'G_MOCK_123');
       expect(res.body.data).toHaveProperty('id', 'w-1');
       expect(res.body.data).not.toHaveProperty('encryptedSecretKey');
-      expect(res.body.data).not.toHaveProperty('userId'); // only requested fields
+      expect(res.body.data).not.toHaveProperty('userId');
     });
   });
 
@@ -111,7 +87,7 @@ describe('Wallets Routes', () => {
     });
 
     it('returns 404 if wallet is not found', async () => {
-      mockFindByUserId.mockResolvedValue(null);
+      mockWalletRepository.findByUserId.mockResolvedValue(null);
 
       const res = await request(app).post('/api/wallets/withdraw').send({
         destinationAddress: validAddress,
@@ -125,11 +101,11 @@ describe('Wallets Routes', () => {
     });
 
     it('returns 400 if withdrawal amount exceeds balance', async () => {
-      mockFindByUserId.mockResolvedValue({
+      mockWalletRepository.findByUserId.mockResolvedValue({
         id: 'w-1',
         publicKey: 'G_MOCK_123',
       });
-      mockGetBalance.mockResolvedValue('10.00'); // less than 50.00
+      mockWalletProvider.getBalance.mockResolvedValue('10.00');
 
       const res = await request(app).post('/api/wallets/withdraw').send({
         destinationAddress: validAddress,
@@ -143,12 +119,12 @@ describe('Wallets Routes', () => {
     });
 
     it('returns 200 and initiates withdrawal successfully', async () => {
-      mockFindByUserId.mockResolvedValue({
+      mockWalletRepository.findByUserId.mockResolvedValue({
         id: 'w-1',
         publicKey: 'G_MOCK_123',
       });
-      mockGetBalance.mockResolvedValue('100.00');
-      mockWithdrawFromWallet.mockResolvedValue({
+      mockWalletProvider.getBalance.mockResolvedValue('100.00');
+      mockWalletProvider.withdrawFromWallet.mockResolvedValue({
         reference: 'withdraw_123',
         status: 'RESERVED',
         walletAddress: 'G_MOCK_123',
