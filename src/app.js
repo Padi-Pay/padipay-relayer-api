@@ -44,6 +44,7 @@ const transactionBuilder = createTransactionBuilder({ server, contract, config }
 const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
 const horizonService = createHorizonService({ server });
 const stellarService = createStellarService({ config, server });
+// eslint-disable-next-line no-unused-vars
 const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
 const app = express();

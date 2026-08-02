@@ -18,7 +18,7 @@ const crypto = require('crypto');
  * @param {Object} [deps.config] - Application configuration.
  * @returns {IWalletProvider}
  */
-const createEmbeddedWalletProvider = ({ config } = {}) => {
+const createEmbeddedWalletProvider = ({ _config } = {}) => {
   // In-memory store for mocked wallet addresses.
   // In a real integration, this would communicate with the provider's API.
   const mockWallets = new Map();
