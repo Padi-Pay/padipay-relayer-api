@@ -64,7 +64,7 @@ app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users/me', authenticate, usersRoutes);
 app.use('/api/accounts/me', authenticate, accountsRoutes);
-app.use('/api/wallets/me', authenticate, walletsRoutes);
+app.use('/api/wallets', authenticate, walletsRoutes);
 app.use('/api/relayer', relayerRoutes);
 
 // Error Handling Middleware
