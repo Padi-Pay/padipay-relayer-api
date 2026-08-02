@@ -10,6 +10,7 @@ const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
 const { createHorizonService } = require('./services/horizon.service');
 const { createStellarService } = require('./services/stellar.service');
+const { createEmbeddedWalletProvider } = require('./providers/embedded-wallet.provider');
 
 let config;
 try {
@@ -43,6 +44,7 @@ const transactionBuilder = createTransactionBuilder({ server, contract, config }
 const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
 const horizonService = createHorizonService({ server });
 const stellarService = createStellarService({ config, server });
+const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
 const app = express();
 const PORT = config.PORT;
