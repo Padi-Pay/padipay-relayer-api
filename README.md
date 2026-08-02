@@ -226,6 +226,15 @@ For detailed information on how this architecture works, please see our document
 - [Contributing Guidelines](./docs/contributing.md)
 - [Roadmap](./docs/roadmap.md)
 
+### Interactive API Documentation
+First-class OpenAPI (Swagger) documentation is provided natively by the application. Once the server is running, you can access the interactive Swagger UI by visiting:
+
+```text
+http://localhost:3000/docs
+```
+
+This interface allows you to view all available endpoints, their expected request payloads, required authentication, and try them out directly from your browser.
+
 
 ## Contributing
 
