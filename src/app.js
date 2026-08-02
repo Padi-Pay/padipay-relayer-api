@@ -56,6 +56,7 @@ app.use(express.json());
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const accountsRoutes = require('./routes/accounts.routes');
+const walletsRoutes = require('./routes/wallets.routes');
 
 // API Routes
 const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
@@ -63,6 +64,7 @@ app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users/me', authenticate, usersRoutes);
 app.use('/api/accounts/me', authenticate, accountsRoutes);
+app.use('/api/wallets/me', authenticate, walletsRoutes);
 app.use('/api/relayer', relayerRoutes);
 
 // Error Handling Middleware

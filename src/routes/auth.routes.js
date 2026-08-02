@@ -7,10 +7,22 @@ const { UserRepository } = require('../repositories/user.repository');
 const { PasswordResetTokenRepository } = require('../repositories/password-reset-token.repository');
 const prisma = require('../clients/prisma.client');
 
+const { WalletRepository } = require('../repositories/wallet.repository');
+const { createEmbeddedWalletProvider } = require('../providers/embedded-wallet.provider');
+
 // Initialize dependencies
 const userRepository = new UserRepository(prisma);
 const passwordResetTokenRepository = new PasswordResetTokenRepository(prisma);
-const authService = createAuthService({ userRepository, passwordResetTokenRepository });
+const walletProvider = createEmbeddedWalletProvider();
+
+const authService = createAuthService({ 
+  userRepository, 
+  passwordResetTokenRepository,
+  walletProvider,
+  prisma,
+  UserRepository,
+  WalletRepository
+});
 
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
