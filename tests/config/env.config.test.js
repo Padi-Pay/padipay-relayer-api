@@ -22,6 +22,7 @@ describe('Environment Configuration', () => {
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
     process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
     process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+    delete process.env.PORT;
 
     const config = loadConfig();
 
