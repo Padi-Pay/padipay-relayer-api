@@ -16,7 +16,8 @@ describe('Transaction Builder', () => {
 
   beforeEach(() => {
     mockServer = {
-      getAccount: jest.fn().mockResolvedValue(new StellarSdk.Account(validPubKey, '1'))
+      getAccount: jest.fn().mockResolvedValue(new StellarSdk.Account(validPubKey, '1')),
+      prepareTransaction: jest.fn().mockImplementation((tx) => Promise.resolve(tx))
     };
     
     mockContract = {

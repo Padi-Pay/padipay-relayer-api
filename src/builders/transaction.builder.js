@@ -28,13 +28,15 @@ const createTransactionBuilder = ({ server, contract, config }) => {
     try {
       const operation = contract.call(method, ...params);
 
-      const transaction = new StellarSdk.TransactionBuilder(account, {
+      let transaction = new StellarSdk.TransactionBuilder(account, {
         fee: StellarSdk.BASE_FEE,
         networkPassphrase: config.NETWORK_PASSPHRASE,
       })
         .addOperation(operation)
         .setTimeout(30)
         .build();
+
+      transaction = await server.prepareTransaction(transaction);
 
       return transaction.toXDR();
     } catch (error) {
