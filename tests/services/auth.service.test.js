@@ -74,13 +74,13 @@ describe('AuthService', () => {
 
     it('hashes password, registers user and provisions wallet successfully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockTxUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com', password: 'hashedpassword' });
+      mockTxUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com', passwordHash: 'hashedpassword' });
       
       const user = await authService.register({ email: 'test@test.com', password: 'Password1!' });
       
       expect(mockTxUserRepository.create).toHaveBeenCalledWith({
         email: 'test@test.com',
-        password: expect.any(String)
+        passwordHash: expect.any(String)
       });
       expect(mockWalletProvider.createWallet).toHaveBeenCalledWith('1');
       expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
@@ -88,7 +88,7 @@ describe('AuthService', () => {
         publicKey: 'G_MOCK_TEST',
         encryptedSecretKey: 'managed-by-provider'
       });
-      expect(user).not.toHaveProperty('password');
+      expect(user).not.toHaveProperty('passwordHash');
       expect(user.id).toBe('1');
     });
 
@@ -96,9 +96,9 @@ describe('AuthService', () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       
       let createdHashes = [];
-      mockTxUserRepository.create.mockImplementation(async (data) => {
-        createdHashes.push(data.password);
-        return { id: '1', ...data };
+      mockTxUserRepository.create.mockImplementation((data) => {
+        createdHashes.push(data.passwordHash);
+        return { id: createdHashes.length.toString(), ...data };
       });
 
       await authService.register({ email: 'test1@test.com', password: 'Password1!' });
@@ -118,9 +118,11 @@ describe('AuthService', () => {
     });
 
     it('throws generic error if password does not match', async () => {
-      const hashedPassword = await bcrypt.hash('Correct1!', 10);
-      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'test@test.com', password: hashedPassword });
-      
+      mockUserRepository.findByEmail.mockResolvedValue({
+        id: '1',
+        email: 'test@test.com',
+        passwordHash: await bcrypt.hash('Password1!', 10),
+      });
       await expect(authService.login({ email: 'test@test.com', password: 'WrongPassword!' }))
         .rejects
         .toMatchObject({ message: 'Invalid email or password' });
@@ -128,11 +130,11 @@ describe('AuthService', () => {
 
     it('logs in successfully and returns user and token', async () => {
       const hashedPassword = await bcrypt.hash('Correct1!', 10);
-      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'test@test.com', role: 'USER', password: hashedPassword });
+      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'test@test.com', role: 'USER', passwordHash: hashedPassword });
       
       const { user, token } = await authService.login({ email: 'test@test.com', password: 'Correct1!' });
       
-      expect(user).not.toHaveProperty('password');
+      expect(user).not.toHaveProperty('passwordHash');
       expect(user.id).toBe('1');
       expect(token).toBeDefined();
       const decoded = jwt.verify(token, 'test-secret');
@@ -174,7 +176,7 @@ describe('AuthService', () => {
       });
       OAuth2Client.mockImplementation(() => ({ verifyIdToken: mockVerifyIdToken }));
       
-      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'existing@test.com', password: 'hashed' });
+      mockUserRepository.findByEmail.mockResolvedValue({ id: '1', email: 'existing@test.com', passwordHash: 'hashed' });
       mockUserRepository.update.mockResolvedValue({ id: '1', email: 'existing@test.com', googleId: 'g-123', role: 'USER' });
 
       const { user, token } = await authService.googleSignIn({ idToken: 'valid-token' });
@@ -184,7 +186,7 @@ describe('AuthService', () => {
         name: 'Existing User',
       });
       expect(user.id).toBe('1');
-      expect(user).not.toHaveProperty('password');
+      expect(user).not.toHaveProperty('passwordHash');
       expect(token).toBeDefined();
     });
 
@@ -268,7 +270,7 @@ describe('AuthService', () => {
       const result = await authService.resetPassword({ token: 'valid', newPassword: 'Password1!' });
       
       expect(result).toEqual({ success: true });
-      expect(mockUserRepository.update).toHaveBeenCalledWith('1', { password: expect.any(String) });
+      expect(mockUserRepository.update).toHaveBeenCalledWith('1', { passwordHash: expect.any(String) });
       expect(mockPasswordResetTokenRepository.markUsed).toHaveBeenCalledWith('t1');
     });
   });

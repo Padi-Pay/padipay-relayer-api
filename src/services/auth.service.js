@@ -22,7 +22,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
 
       const newUser = await txUserRepository.create({
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
       });
 
       const { address } = await walletProvider.createWallet(newUser.id);
@@ -37,7 +37,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
     });
 
     const userWithoutPassword = { ...user };
-    delete userWithoutPassword.password;
+    delete userWithoutPassword.passwordHash;
     return userWithoutPassword;
   };
 
@@ -48,13 +48,13 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       throw new AppError('Invalid email or password', 401);
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new AppError('Invalid email or password', 401);
     }
 
     const userWithoutPassword = { ...user };
-    delete userWithoutPassword.password;
+    delete userWithoutPassword.passwordHash;
 
     const { JWT_SECRET } = loadConfig();
     const token = jwt.sign(
@@ -111,7 +111,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       }
 
       const userWithoutPassword = { ...user };
-      delete userWithoutPassword.password;
+      delete userWithoutPassword.passwordHash;
 
       const token = jwt.sign(
         { id: user.id, role: user.role },
@@ -163,7 +163,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password
-    await userRepository.update(resetRecord.userId, { password: hashedPassword });
+    await userRepository.update(resetRecord.userId, { passwordHash: hashedPassword });
     
     // Mark token as used
     await passwordResetTokenRepository.markUsed(resetRecord.id);

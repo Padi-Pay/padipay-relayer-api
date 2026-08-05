@@ -8,21 +8,13 @@ describe('EmbeddedWalletProvider', () => {
   });
 
   describe('createWallet', () => {
-    it('creates a deterministic mock wallet address for a user ID', async () => {
+    it('creates a valid Stellar mock wallet address for a user ID', async () => {
       const userId = 'user-123';
       const result = await provider.createWallet(userId);
       
       expect(result).toHaveProperty('address');
-      expect(result.address.startsWith('G_MOCK_')).toBe(true);
-      expect(result.address.length).toBeGreaterThan(10);
-    });
-
-    it('returns the same address for the same user ID', async () => {
-      const userId = 'user-456';
-      const result1 = await provider.createWallet(userId);
-      const result2 = await provider.createWallet(userId);
-      
-      expect(result1.address).toBe(result2.address);
+      expect(result.address.startsWith('G')).toBe(true);
+      expect(result.address.length).toBe(56);
     });
 
     it('throws an error if userId is missing', async () => {

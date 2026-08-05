@@ -10,7 +10,7 @@ class WalletRepository {
   }
 
   async findByUserId(userId) {
-    return this.db.wallet.findUnique({ where: { userId } });
+    return this.db.wallet.findFirst({ where: { userId } });
   }
 
   async findByPublicKey(publicKey) {

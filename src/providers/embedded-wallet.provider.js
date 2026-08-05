@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { Keypair } = require('stellar-sdk');
 
 /**
  * @typedef {Object} IWalletProvider
@@ -34,8 +35,9 @@ const createEmbeddedWalletProvider = ({ _config } = {}) => {
       throw new Error('userId is required to create a wallet');
     }
 
-    // Stub: Generate a deterministic mock address based on userId
-    const address = `G_MOCK_${crypto.createHash('sha256').update(userId).digest('hex').substring(0, 40).toUpperCase()}`;
+    // Generate a structurally valid Stellar public key to avoid Horizon 400 Bad Request errors.
+    const keypair = Keypair.random();
+    const address = keypair.publicKey();
     mockWallets.set(userId, address);
 
     return { address };

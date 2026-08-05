@@ -1,6 +1,7 @@
 jest.mock('../../src/clients/prisma.client', () => ({
   wallet: {
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -22,9 +23,10 @@ const { WalletRepository } = require('../../src/repositories/wallet.repository')
     expect(result.id).toBe('123');
   });
 
-  it('findByUserId calls wallet.findUnique', async () => {
+  it('findByUserId calls wallet.findFirst', async () => {
+    mockPrismaClient.wallet.findFirst.mockResolvedValue({ id: '1', userId: 'user-1' });
     await repository.findByUserId('user-1');
-    expect(mockPrismaClient.wallet.findUnique).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+    expect(mockPrismaClient.wallet.findFirst).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
   });
 
   it('create calls wallet.create', async () => {
