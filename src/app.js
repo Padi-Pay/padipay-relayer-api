@@ -1,3 +1,4 @@
+require('dotenv').config();
 const StellarSdk = require('stellar-sdk');
 const { loadConfig } = require('./config/env.config');
 const express = require('express');
@@ -26,8 +27,7 @@ const horizonServer = new StellarSdk.Horizon.Server(config.HORIZON_URL);
 const contract = new StellarSdk.Contract(config.CONTRACT_ID);
 
 // Initialize Prisma
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./clients/prisma.client');
 
 // Initialize Repositories
 const { createUserRepository } = require('./repositories/user.repository');
