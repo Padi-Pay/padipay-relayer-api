@@ -5,7 +5,7 @@ const express = require('express');
 const { createRelayerRoutes } = require('./routes/relayer.routes');
 const healthRoutes = require('./routes/health.routes');
 const errorHandler = require('./middleware/error.middleware');
-const authenticate = require('./middleware/auth.middleware');
+const { authenticate } = require('./middleware/auth.middleware');
 
 const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
@@ -30,13 +30,11 @@ const contract = new StellarSdk.Contract(config.CONTRACT_ID);
 const prisma = require('./clients/prisma.client');
 
 // Initialize Repositories
-const { createUserRepository } = require('./repositories/user.repository');
-const { createWalletRepository } = require('./repositories/wallet.repository');
+const { WalletRepository } = require('./repositories/wallet.repository');
 const { createEscrowRepository } = require('./repositories/escrow.repository');
 const { createTransactionRepository } = require('./repositories/transaction.repository');
 
-createUserRepository({ prisma });
-const walletRepository = createWalletRepository({ prisma });
+const walletRepository = new WalletRepository(prisma);
 const escrowRepository = createEscrowRepository({ prisma });
 const transactionRepository = createTransactionRepository({ prisma });
 
