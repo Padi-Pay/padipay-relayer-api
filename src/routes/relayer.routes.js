@@ -93,10 +93,9 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
         }
         
         const buyerWallet = await walletRepository.findByPublicKey(params.buyer);
-        const sellerWallet = await walletRepository.findByPublicKey(params.seller);
         
-        if (!buyerWallet || !sellerWallet) {
-          return res.status(400).json({ message: 'Buyer or seller not found in database' });
+        if (!buyerWallet) {
+          return res.status(400).json({ message: 'Buyer wallet not found in database' });
         }
 
         ({ unsignedXdr, escrowIntentId } = await escrowService.createEscrow(params));

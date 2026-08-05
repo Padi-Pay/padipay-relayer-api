@@ -150,14 +150,18 @@ describe('Relayer Routes', () => {
       expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-123', 'tx-456', 'SUCCESS');
     });
 
-    it('should fail CREATE action if buyer or seller are not in DB', async () => {
-      const payload = { actionType: 'CREATE', params: { buyer: 'G_BUYER', seller: 'G_SELLER', amount: '100' } };
+    it('should fail CREATE action if buyer is not in DB', async () => {
       mockFindByPublicKey.mockResolvedValueOnce(null);
 
-      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
-      
+      const res = await request(app)
+        .post('/api/relayer/submit-escrow')
+        .send({
+          actionType: 'CREATE',
+          params: { buyer: 'buyer', seller: 'seller', amount: '10' }
+        });
+
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Buyer or seller not found in database');
+      expect(res.body.message).toBe('Buyer wallet not found in database');
     });
 
     it('should fail CREATE action if params are missing', async () => {
