@@ -70,6 +70,33 @@ describe('Wallets Routes', () => {
     });
   });
 
+  describe('GET /api/wallets/me/balance', () => {
+    it('returns 404 if wallet is not found', async () => {
+      mockWalletRepository.findByUserId.mockResolvedValue(null);
+
+      const res = await request(app).get('/api/wallets/me/balance');
+      
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Wallet not found');
+    });
+
+    it('returns wallet balance', async () => {
+      mockWalletRepository.findByUserId.mockResolvedValue({
+        id: 'w-1',
+        publicKey: 'G_MOCK_123',
+      });
+      mockWalletProvider.getBalance.mockResolvedValue('150.00');
+
+      const res = await request(app).get('/api/wallets/me/balance');
+      
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('balance', '150.00');
+      expect(res.body.data).toHaveProperty('asset', 'XLM');
+    });
+  });
+
   describe('POST /api/wallets/withdraw', () => {
     const validAddress = 'GCTAAYPBHPVJNN6F7IXZT6TRMMGS6GYBZJIOWRTP7HUHIZ5W2K6FR4CI';
     const invalidAddress = 'invalid-address';

@@ -36,6 +36,30 @@ const createWalletsRoutes = ({ walletProvider, walletRepository }) => {
     }
   });
 
+  router.get('/me/balance', async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const wallet = await walletRepository.findByUserId(userId);
+
+      if (!wallet) {
+        throw new AppError('Wallet not found', 404);
+      }
+
+      const balanceStr = await walletProvider.getBalance(wallet.publicKey);
+
+      res.status(200).json({
+        success: true,
+        message: 'Wallet balance retrieved successfully',
+        data: {
+          balance: balanceStr,
+          asset: 'XLM',
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/withdraw', validate(withdrawSchema), async (req, res, next) => {
     try {
       const userId = req.user.id;
