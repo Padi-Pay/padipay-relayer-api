@@ -16,6 +16,18 @@ jest.mock('../../src/repositories/user.repository', () => {
   };
 });
 
+const mockEscrowFindByUserId = jest.fn();
+const mockEscrowFindById = jest.fn();
+
+jest.mock('../../src/repositories/escrow.repository', () => {
+  return {
+    createEscrowRepository: jest.fn().mockImplementation(() => ({
+      findByUserId: mockEscrowFindByUserId,
+      findById: mockEscrowFindById,
+    })),
+  };
+});
+
 const accountsRoutes = require('../../src/routes/accounts.routes');
 
 const app = express();
@@ -79,6 +91,62 @@ describe('Accounts Routes', () => {
     it('returns 401 if unauthenticated', async () => {
       const res = await request(app).get('/api/accounts/me');
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/accounts/me/escrows', () => {
+    it('returns list of escrows for the authenticated user', async () => {
+      const mockEscrows = [{ id: 'escrow-1', status: 'PENDING' }];
+      mockEscrowFindByUserId.mockResolvedValue(mockEscrows);
+
+      const res = await request(app)
+        .get('/api/accounts/me/escrows')
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual(mockEscrows);
+      expect(mockEscrowFindByUserId).toHaveBeenCalledWith('user-123');
+    });
+
+    it('returns 401 if unauthenticated', async () => {
+      const res = await request(app).get('/api/accounts/me/escrows');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/accounts/me/escrows/:id', () => {
+    it('returns 404 if escrow is not found', async () => {
+      mockEscrowFindById.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/accounts/me/escrows/not-exist')
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Escrow not found');
+    });
+
+    it('returns 403 if escrow does not belong to the user', async () => {
+      mockEscrowFindById.mockResolvedValue({ id: 'escrow-1', userId: 'another-user' });
+
+      const res = await request(app)
+        .get('/api/accounts/me/escrows/escrow-1')
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe('Unauthorized');
+    });
+
+    it('returns escrow details if it belongs to the user', async () => {
+      mockEscrowFindById.mockResolvedValue({ id: 'escrow-1', userId: 'user-123', status: 'PENDING' });
+
+      const res = await request(app)
+        .get('/api/accounts/me/escrows/escrow-1')
+        .set('Authorization', 'Bearer valid-token');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.id).toBe('escrow-1');
     });
   });
 });

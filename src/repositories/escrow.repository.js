@@ -1,6 +1,11 @@
 const createEscrowRepository = ({ prisma }) => {
   const findById = async (id) => prisma.escrowIntent.findUnique({ where: { id } });
   
+  const findByUserId = async (userId) => prisma.escrowIntent.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' }
+  });
+  
   const create = async (data) => prisma.escrowIntent.create({ data });
   
   const updateStatus = async (id, status, onChainEscrowId = null) => {
@@ -9,7 +14,7 @@ const createEscrowRepository = ({ prisma }) => {
     return prisma.escrowIntent.update({ where: { id }, data });
   };
   
-  return { findById, create, updateStatus };
+  return { findById, findByUserId, create, updateStatus };
 };
 
 module.exports = { createEscrowRepository };
