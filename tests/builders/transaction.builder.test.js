@@ -1,5 +1,5 @@
 const { createTransactionBuilder } = require('../../src/builders/transaction.builder');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 const RpcError = require('../../src/errors/RpcError');
 
 describe('Transaction Builder', () => {

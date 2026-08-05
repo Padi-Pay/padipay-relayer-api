@@ -1,6 +1,6 @@
 const RpcError = require('../errors/RpcError');
 const StellarError = require('../errors/StellarError');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 
 /**
  * Maps raw Stellar network errors and transaction submission responses to standardized domain errors.

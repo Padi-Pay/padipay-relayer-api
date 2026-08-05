@@ -1,5 +1,5 @@
 const { createEscrowService } = require('../../src/services/escrow.service');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 
 describe('Escrow Service', () => {
   let escrowService;

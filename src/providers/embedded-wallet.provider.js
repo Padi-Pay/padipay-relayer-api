@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { Keypair } = require('stellar-sdk');
+const { Keypair } = require('@stellar/stellar-sdk');
 
 /**
  * @typedef {Object} IWalletProvider

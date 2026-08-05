@@ -8,7 +8,7 @@ const JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long';
 jest.mock('../../src/clients/prisma.client', () => ({}));
 
 jest.mock('../../src/config/env.config', () => {
-  const { StrKey, Keypair } = require('stellar-sdk');
+  const { StrKey, Keypair } = require('@stellar/stellar-sdk');
   return {
     loadConfig: jest.fn().mockReturnValue({
       JWT_SECRET: 'test-jwt-secret-at-least-32-characters-long',

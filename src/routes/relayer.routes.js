@@ -1,5 +1,5 @@
 const express = require('express');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 const { validate } = require('../middleware/validate.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
 const { submitEscrowSchema, createEscrowSchema, escrowActionSchema } = require('../validation/schemas/escrow.schema');

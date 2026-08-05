@@ -2,7 +2,7 @@ const express = require('express');
 const AppError = require('../errors/AppError');
 const { validate } = require('../middleware/validate.middleware');
 const { withdrawSchema } = require('../validation/schemas/wallet.schema');
-const { StrKey } = require('stellar-sdk');
+const { StrKey } = require('@stellar/stellar-sdk');
 
 /**
  * Factory function for Wallets API routes.

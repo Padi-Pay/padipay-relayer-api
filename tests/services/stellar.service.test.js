@@ -1,5 +1,5 @@
 const { createStellarService } = require('../../src/services/stellar.service');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 const RpcError = require('../../src/errors/RpcError');
 const StellarError = require('../../src/errors/StellarError');
 

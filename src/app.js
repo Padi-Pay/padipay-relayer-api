@@ -1,5 +1,5 @@
 require('dotenv').config();
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 const { loadConfig } = require('./config/env.config');
 const express = require('express');
 const { createRelayerRoutes } = require('./routes/relayer.routes');

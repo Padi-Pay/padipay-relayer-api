@@ -1,4 +1,4 @@
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 
 /**
  * Factory function for the Escrow Service.

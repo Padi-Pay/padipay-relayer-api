@@ -1,7 +1,7 @@
 const { parseTransactionError } = require('../../src/utils/error.parser');
 const RpcError = require('../../src/errors/RpcError');
 const StellarError = require('../../src/errors/StellarError');
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 
 describe('Transaction Error Parser', () => {
   it('should parse network connection refused errors', () => {
