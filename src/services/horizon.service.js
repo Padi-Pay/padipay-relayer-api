@@ -4,7 +4,7 @@ const { parseTransactionStatus } = require('../utils/status.parser');
 /**
  * Factory function for the Network Service (Horizon/RPC) handling network queries.
  * @param {Object} deps - Dependencies
- * @param {StellarSdk.SorobanRpc.Server} deps.server - The Soroban RPC server instance
+ * @param {StellarSdk.rpc.Server} deps.server - The Soroban RPC server instance
  * @param {StellarSdk.Horizon.Server} deps.horizonServer - The Horizon server instance
  */
 const createHorizonService = ({ server, horizonServer }) => {

@@ -38,7 +38,7 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
   router.post('/escrow/:id/fund', authenticate, validate(escrowActionSchema), async (req, res, next) => {
     try {
       const config = loadConfig();
-      const server = new StellarSdk.SorobanRpc.Server(config.RPC_URL);
+      const server = new StellarSdk.rpc.Server(config.RPC_URL);
       const contract = createSorobanClient(config);
       const transactionBuilder = createTransactionBuilder({ server, contract, config });
       const escrowFundingService = createEscrowFundingService({

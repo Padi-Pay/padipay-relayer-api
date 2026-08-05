@@ -22,7 +22,7 @@ try {
 }
 
 // Initialize Stellar/Soroban dependencies
-const server = new StellarSdk.SorobanRpc.Server(config.RPC_URL);
+const server = new StellarSdk.rpc.Server(config.RPC_URL);
 const horizonServer = new StellarSdk.Horizon.Server(config.HORIZON_URL);
 const contract = new StellarSdk.Contract(config.CONTRACT_ID);
 

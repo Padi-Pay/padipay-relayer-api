@@ -7,7 +7,7 @@ const { parseTransactionError } = require('../utils/error.parser');
  * Factory function for Stellar Service handling transaction operations like signing and submission.
  * @param {Object} deps - Dependencies
  * @param {Object} deps.config - Application configuration
- * @param {StellarSdk.SorobanRpc.Server} deps.server - The Soroban RPC server instance
+ * @param {StellarSdk.rpc.Server} deps.server - The Soroban RPC server instance
  */
 const createStellarService = ({ config, server }) => {
   /**

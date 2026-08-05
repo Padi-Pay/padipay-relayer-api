@@ -5,7 +5,7 @@ const StellarError = require('../errors/StellarError');
 /**
  * Factory function to create a dependency-injected transaction builder service.
  * @param {Object} deps - Dependencies required for transaction building.
- * @param {StellarSdk.SorobanRpc.Server} deps.server - The Soroban RPC server instance.
+ * @param {StellarSdk.rpc.Server} deps.server - The Soroban RPC server instance.
  * @param {StellarSdk.Contract} deps.contract - The initialized Soroban contract instance.
  * @param {Object} deps.config - Application configuration.
  */
@@ -40,6 +40,7 @@ const createTransactionBuilder = ({ server, contract, config }) => {
 
       return transaction.toXDR();
     } catch (error) {
+      console.error('[BUILD EXCEPTION]', error);
       throw new StellarError(`Failed to build transaction: ${error.message}`);
     }
   };
