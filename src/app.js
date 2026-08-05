@@ -40,7 +40,7 @@ const transactionRepository = createTransactionRepository({ prisma });
 
 // Bootstrap Dependency Injection Container
 const transactionBuilder = createTransactionBuilder({ server, contract, config });
-const escrowService = createEscrowService({ transactionBuilder, config, escrowRepository, transactionRepository });
+const escrowService = createEscrowService({ transactionBuilder, config, escrowIntentRepository: escrowRepository, transactionRepository });
 const horizonService = createHorizonService({ server, horizonServer });
 const stellarService = createStellarService({ config, server });
 
