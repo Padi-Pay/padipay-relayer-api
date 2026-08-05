@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const { Keypair } = require('@stellar/stellar-sdk');
 
 /**

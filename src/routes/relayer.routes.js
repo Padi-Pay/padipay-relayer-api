@@ -63,9 +63,12 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
     }
   });
 
-  router.post('/create-escrow', validate(createEscrowSchema), async (req, res, next) => {
+  router.post('/create-escrow', authenticate, validate(createEscrowSchema), async (req, res, next) => {
     try {
-      const { unsignedXdr, escrowIntentId } = await escrowService.createEscrow(req.body);
+      const { unsignedXdr, escrowIntentId } = await escrowService.createEscrow({
+        ...req.body,
+        userId: req.user.id
+      });
       const signedXdr = stellarService.signTransaction(unsignedXdr);
       const result = await stellarService.submitTransaction(signedXdr);
       
@@ -80,7 +83,7 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
     }
   });
 
-  router.post('/submit-escrow', validate(submitEscrowSchema), async (req, res, next) => {
+  router.post('/submit-escrow', authenticate, validate(submitEscrowSchema), async (req, res, next) => {
     try {
       const { actionType, params } = req.body;
       
@@ -98,7 +101,10 @@ const createRelayerRoutes = ({ escrowService, stellarService, horizonService }) 
           return res.status(400).json({ message: 'Buyer wallet not found in database' });
         }
 
-        ({ unsignedXdr, escrowIntentId } = await escrowService.createEscrow(params));
+        ({ unsignedXdr, escrowIntentId } = await escrowService.createEscrow({
+          ...params,
+          userId: req.user.id
+        }));
       } else {
         if (!params || !params.id) {
           return res.status(400).json({ message: 'Escrow ID is required in params' });

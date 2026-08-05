@@ -87,7 +87,7 @@ describe('Relayer Routes', () => {
 
   describe('POST /api/relayer/create-escrow', () => {
     it('should fail validation when payload is missing', async () => {
-      const res = await request(app).post('/api/relayer/create-escrow').send({});
+      const res = await request(app).post('/api/relayer/create-escrow').set('Authorization', `Bearer ${authToken}`).send({});
       
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -102,13 +102,13 @@ describe('Relayer Routes', () => {
       mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-123' });
       mockEscrowService.recordTransaction.mockResolvedValue({});
 
-      const res = await request(app).post('/api/relayer/create-escrow').send(payload);
+      const res = await request(app).post('/api/relayer/create-escrow').set('Authorization', `Bearer ${authToken}`).send(payload);
       
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow created successfully');
       expect(res.body.result).toEqual({ hash: 'tx-123' });
       
-      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith(payload);
+      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith({ ...payload, userId: 'buyer-1' });
       expect(mockStellarService.signTransaction).toHaveBeenCalledWith('unsigned_xdr');
       expect(mockStellarService.submitTransaction).toHaveBeenCalledWith('signed_xdr');
       expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-123', 'tx-123', 'SUCCESS');
@@ -117,7 +117,7 @@ describe('Relayer Routes', () => {
 
   describe('POST /api/relayer/submit-escrow', () => {
     it('should fail validation when payload is missing', async () => {
-      const res = await request(app).post('/api/relayer/submit-escrow').send({});
+      const res = await request(app).post('/api/relayer/submit-escrow').set('Authorization', `Bearer ${authToken}`).send({});
       
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -127,7 +127,7 @@ describe('Relayer Routes', () => {
     it('should fail if params.id is missing', async () => {
       const payload = { actionType: 'LOCK' };
       
-      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      const res = await request(app).post('/api/relayer/submit-escrow').set('Authorization', `Bearer ${authToken}`).send(payload);
         
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('Escrow ID is required in params');
@@ -140,7 +140,7 @@ describe('Relayer Routes', () => {
       mockStellarService.signTransaction.mockReturnValue('signed_lock');
       mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-456' });
 
-      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      const res = await request(app).post('/api/relayer/submit-escrow').set('Authorization', `Bearer ${authToken}`).send(payload);
         
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow LOCK action submitted successfully');
@@ -155,6 +155,7 @@ describe('Relayer Routes', () => {
 
       const res = await request(app)
         .post('/api/relayer/submit-escrow')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           actionType: 'CREATE',
           params: { buyer: 'buyer', seller: 'seller', amount: '10' }
@@ -166,7 +167,7 @@ describe('Relayer Routes', () => {
 
     it('should fail CREATE action if params are missing', async () => {
       const payload = { actionType: 'CREATE', params: { buyer: 'G_BUYER' } };
-      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      const res = await request(app).post('/api/relayer/submit-escrow').set('Authorization', `Bearer ${authToken}`).send(payload);
       
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('buyer, seller, and amount are required for CREATE');
@@ -181,13 +182,13 @@ describe('Relayer Routes', () => {
       mockStellarService.signTransaction.mockReturnValue('signed_create');
       mockStellarService.submitTransaction.mockResolvedValue({ hash: 'tx-789' });
 
-      const res = await request(app).post('/api/relayer/submit-escrow').send(payload);
+      const res = await request(app).post('/api/relayer/submit-escrow').set('Authorization', `Bearer ${authToken}`).send(payload);
         
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow CREATE action submitted successfully');
       expect(res.body.result).toEqual({ hash: 'tx-789' });
       
-      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith(payload.params);
+      expect(mockEscrowService.createEscrow).toHaveBeenCalledWith({ ...payload.params, userId: 'buyer-1' });
       expect(mockEscrowService.recordTransaction).toHaveBeenCalledWith('intent-999', 'tx-789', 'SUCCESS');
     });
   });

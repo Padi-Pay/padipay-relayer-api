@@ -20,10 +20,11 @@ const createEscrowService = ({ transactionBuilder, config, userRepository, walle
    * @returns {Promise<Object>} Base64 encoded unsigned transaction XDR and the intent ID
    */
   const createEscrow = async (params) => {
-    const { buyer, seller, amount, asset } = params;
+    const { buyer, seller, amount, asset, userId } = params;
 
     // Persist intent to DB (graceful degradation if repo not provided in tests)
     const escrowIntent = escrowIntentRepository ? await escrowIntentRepository.create({
+      userId,
       buyerAddress: buyer,
       sellerAddress: seller,
       amount: amount,
