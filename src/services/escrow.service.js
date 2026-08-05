@@ -32,9 +32,13 @@ const createEscrowService = ({ transactionBuilder, config, userRepository, walle
       status: 'PENDING',
     }) : { id: 'mock-id' };
 
+    // Hardcoded Testnet XLM address for now
+    const tokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
+
     const scValParams = [
       StellarSdk.nativeToScVal(buyer, { type: 'address' }),
       StellarSdk.nativeToScVal(seller, { type: 'address' }),
+      StellarSdk.nativeToScVal(tokenAddress, { type: 'address' }),
       StellarSdk.nativeToScVal(amount, { type: 'i128' }),
     ];
 
