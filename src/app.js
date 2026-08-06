@@ -75,6 +75,11 @@ app.use('/api/accounts/me', authenticate, accountsRoutes);
 app.use('/api/wallets', authenticate, walletsRoutes);
 app.use('/api/relayer', relayerRoutes);
 
+// Swagger API Documentation
+const swaggerUi = require('swagger-ui-express');
+const { generateOpenApiDocument } = require('./docs/openapi');
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
+
 // Error Handling Middleware
 app.use(errorHandler);
 
