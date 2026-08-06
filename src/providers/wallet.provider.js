@@ -124,7 +124,7 @@ const createWalletProvider = ({ config, horizonService, horizonServer } = {}) =>
     } catch (error) {
       const resultCodes = error.response?.data?.extras?.result_codes;
       console.error('[HORIZON SUBMIT ERROR]', resultCodes || error.message);
-      throw new Error(`Transaction failed: ${JSON.stringify(resultCodes || error.message)}`);
+      throw new Error(`Transaction failed: ${JSON.stringify(resultCodes || error.message)}`, { cause: error });
     }
 
     return {
