@@ -50,7 +50,7 @@ describe('AuthService', () => {
       $transaction: jest.fn(async (cb) => cb('mock-tx'))
     };
     mockWalletProvider = {
-      createWallet: jest.fn().mockResolvedValue({ address: 'G_MOCK_TEST' })
+      createWallet: jest.fn().mockResolvedValue({ address: 'G_MOCK_TEST', secret: 'S_MOCK_SECRET' })
     };
 
     authService = createAuthService({ 
@@ -86,7 +86,7 @@ describe('AuthService', () => {
       expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
         userId: '1',
         publicKey: 'G_MOCK_TEST',
-        encryptedSecretKey: 'managed-by-provider'
+        encryptedSecretKey: 'S_MOCK_SECRET'
       });
       expect(user).not.toHaveProperty('passwordHash');
       expect(user.id).toBe('1');
@@ -164,7 +164,7 @@ describe('AuthService', () => {
       expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
         userId: '2',
         publicKey: 'G_MOCK_TEST',
-        encryptedSecretKey: 'managed-by-provider'
+        encryptedSecretKey: 'S_MOCK_SECRET'
       });
       expect(user.id).toBe('2');
       expect(token).toBeDefined();

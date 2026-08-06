@@ -37,9 +37,10 @@ const createEmbeddedWalletProvider = ({ _config } = {}) => {
     // Generate a structurally valid Stellar public key to avoid Horizon 400 Bad Request errors.
     const keypair = Keypair.random();
     const address = keypair.publicKey();
-    mockWallets.set(userId, address);
+    const secret = keypair.secret();
+    mockWallets.set(userId, { address, secret });
 
-    return { address };
+    return { address, secret };
   };
 
   /**
@@ -53,8 +54,8 @@ const createEmbeddedWalletProvider = ({ _config } = {}) => {
       throw new Error('userId is required to get a wallet');
     }
 
-    const address = mockWallets.get(userId) || null;
-    return address ? { address } : null;
+    const data = mockWallets.get(userId) || null;
+    return data ? { address: data.address } : null;
   };
 
   return { createWallet, getWallet };

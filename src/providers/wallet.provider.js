@@ -13,7 +13,7 @@ const axios = require('axios');
  * @param {Object} [deps.config] - Application configuration.
  * @param {Object} [deps.horizonService] - The horizon network service
  */
-const createWalletProvider = ({ config, horizonService } = {}) => {
+const createWalletProvider = ({ config, horizonService, horizonServer } = {}) => {
   /**
    * Executes a managed wallet top-up through the underlying provider.
    *
@@ -68,14 +68,49 @@ const createWalletProvider = ({ config, horizonService } = {}) => {
    * @param {string} params.asset - The asset code to withdraw (e.g. 'XLM').
    * @returns {Promise<Object>} A withdrawal receipt describing the reservation.
    */
-  const withdrawFromWallet = async ({ walletAddress, amount, asset }) => {
+  const withdrawFromWallet = async ({ walletAddress, amount, asset, destinationAddress, secretKey }) => {
+    if (secretKey === 'managed-by-provider') {
+      throw new Error('Withdrawal is not supported for legacy accounts without secret keys.');
+    }
+
+    if (!horizonServer) {
+      throw new Error('horizonServer is required to execute real withdrawals');
+    }
+
+    const { Keypair, TransactionBuilder, Networks, Asset, Operation } = require('@stellar/stellar-sdk');
+    const sourceKeypair = Keypair.fromSecret(secretKey);
+
+    // Load account sequence number
+    const account = await horizonServer.loadAccount(walletAddress);
+
+    // Build the transaction
+    const transaction = new TransactionBuilder(account, {
+      fee: '100',
+      networkPassphrase: config?.NETWORK_PASSPHRASE || Networks.TESTNET,
+    })
+      .addOperation(Operation.payment({
+        destination: destinationAddress,
+        asset: Asset.native(),
+        amount: String(amount),
+      }))
+      .setTimeout(30)
+      .build();
+
+    // Sign the transaction
+    transaction.sign(sourceKeypair);
+
+    // Submit to Horizon
+    const response = await horizonServer.submitTransaction(transaction);
+
     return {
       reference: `withdraw_${crypto.randomUUID()}`,
-      status: 'RESERVED',
+      status: 'SUCCESS',
       walletAddress,
+      destinationAddress,
       amount,
       asset,
       network: config?.NETWORK_PASSPHRASE ?? 'unknown',
+      txId: response.hash,
     };
   };
 

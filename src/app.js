@@ -48,7 +48,7 @@ const horizonService = createHorizonService({ server, horizonServer });
 const stellarService = createStellarService({ config, server });
 
 const { createWalletProvider } = require('./providers/wallet.provider');
-const walletProvider = createWalletProvider({ config, horizonService });
+const walletProvider = createWalletProvider({ config, horizonService, horizonServer });
 
 // eslint-disable-next-line no-unused-vars
 const embeddedWalletProvider = createEmbeddedWalletProvider({ config });

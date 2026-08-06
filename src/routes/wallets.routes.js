@@ -86,6 +86,8 @@ const createWalletsRoutes = ({ walletProvider, walletRepository }) => {
         walletAddress: wallet.publicKey,
         amount,
         asset,
+        destinationAddress,
+        secretKey: wallet.encryptedSecretKey,
       });
 
       res.status(200).json({

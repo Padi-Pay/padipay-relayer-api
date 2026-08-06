@@ -54,40 +54,46 @@ describe('Wallet Provider', () => {
   });
 
   describe('withdrawFromWallet', () => {
-    it('should return a withdrawal receipt for a debit request', async () => {
-      const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' } });
+    it('should return a withdrawal receipt for a successful withdrawal', async () => {
+      const { Keypair, Account } = require('@stellar/stellar-sdk');
+      const secret = Keypair.random().secret();
+      const mockHorizonServer = {
+        loadAccount: jest.fn().mockResolvedValue(new Account('G_WALLET', '1')),
+        submitTransaction: jest.fn().mockResolvedValue({ hash: 'mock_tx_hash' }),
+      };
+      const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' }, horizonServer: mockHorizonServer });
 
       const receipt = await provider.withdrawFromWallet({
         walletAddress: 'G_WALLET',
         amount: '1000',
         asset: 'XLM',
+        destinationAddress: Keypair.random().publicKey(),
+        secretKey: secret,
       });
 
       expect(receipt).toMatchObject({
-        status: 'RESERVED',
+        status: 'SUCCESS',
         walletAddress: 'G_WALLET',
         amount: '1000',
         asset: 'XLM',
         network: 'Test SDF Network',
+        txId: 'mock_tx_hash',
       });
       expect(receipt.reference).toMatch(/^withdraw_/);
     });
 
-    it('should generate a unique reference per request', async () => {
+    it('should throw an error for legacy accounts without secret keys', async () => {
       const provider = createWalletProvider();
-
-      const first = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
-      const second = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
-
-      expect(first.reference).not.toBe(second.reference);
+      await expect(provider.withdrawFromWallet({
+        walletAddress: 'G_A', amount: '1', asset: 'XLM', secretKey: 'managed-by-provider'
+      })).rejects.toThrow('Withdrawal is not supported for legacy accounts without secret keys.');
     });
 
-    it('should fall back to an unknown network when config is absent', async () => {
+    it('should throw an error if horizonServer is not provided', async () => {
       const provider = createWalletProvider();
-
-      const receipt = await provider.withdrawFromWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
-
-      expect(receipt.network).toBe('unknown');
+      await expect(provider.withdrawFromWallet({
+        walletAddress: 'G_A', amount: '1', asset: 'XLM', secretKey: 'S_VALID_MOCK'
+      })).rejects.toThrow('horizonServer is required to execute real withdrawals');
     });
   });
 

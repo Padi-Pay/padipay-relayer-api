@@ -25,12 +25,12 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
         passwordHash: hashedPassword,
       });
 
-      const { address } = await walletProvider.createWallet(newUser.id);
+      const { address, secret } = await walletProvider.createWallet(newUser.id);
       
       await txWalletRepository.create({
         userId: newUser.id,
         publicKey: address,
-        encryptedSecretKey: 'managed-by-provider',
+        encryptedSecretKey: secret,
       });
 
       return newUser;
@@ -98,12 +98,12 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
             googleId,
           });
 
-          const { address } = await walletProvider.createWallet(newUser.id);
+          const { address, secret } = await walletProvider.createWallet(newUser.id);
           
           await txWalletRepository.create({
             userId: newUser.id,
             publicKey: address,
-            encryptedSecretKey: 'managed-by-provider',
+            encryptedSecretKey: secret,
           });
 
           return newUser;
