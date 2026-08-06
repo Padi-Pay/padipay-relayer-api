@@ -57,14 +57,15 @@ describe('Wallet Provider', () => {
     it('should return a withdrawal receipt for a successful withdrawal', async () => {
       const { Keypair, Account } = require('@stellar/stellar-sdk');
       const secret = Keypair.random().secret();
+      const mockWalletAddress = Keypair.random().publicKey();
       const mockHorizonServer = {
-        loadAccount: jest.fn().mockResolvedValue(new Account('G_WALLET', '1')),
+        loadAccount: jest.fn().mockResolvedValue(new Account(mockWalletAddress, '1')),
         submitTransaction: jest.fn().mockResolvedValue({ hash: 'mock_tx_hash' }),
       };
       const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' }, horizonServer: mockHorizonServer });
 
       const receipt = await provider.withdrawFromWallet({
-        walletAddress: 'G_WALLET',
+        walletAddress: mockWalletAddress,
         amount: '1000',
         asset: 'XLM',
         destinationAddress: Keypair.random().publicKey(),
@@ -73,7 +74,7 @@ describe('Wallet Provider', () => {
 
       expect(receipt).toMatchObject({
         status: 'SUCCESS',
-        walletAddress: 'G_WALLET',
+        walletAddress: mockWalletAddress,
         amount: '1000',
         asset: 'XLM',
         network: 'Test SDF Network',

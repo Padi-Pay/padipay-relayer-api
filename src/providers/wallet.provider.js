@@ -83,16 +83,34 @@ const createWalletProvider = ({ config, horizonService, horizonServer } = {}) =>
     // Load account sequence number
     const account = await horizonServer.loadAccount(walletAddress);
 
+    let destinationExists = true;
+    try {
+      await horizonServer.loadAccount(destinationAddress);
+    } catch (e) {
+      if (e.response && e.response.status === 404) {
+        destinationExists = false;
+      } else {
+        throw e;
+      }
+    }
+
+    const operation = destinationExists
+      ? Operation.payment({
+          destination: destinationAddress,
+          asset: Asset.native(),
+          amount: String(amount),
+        })
+      : Operation.createAccount({
+          destination: destinationAddress,
+          startingBalance: String(amount),
+        });
+
     // Build the transaction
     const transaction = new TransactionBuilder(account, {
       fee: '100',
       networkPassphrase: config?.NETWORK_PASSPHRASE || Networks.TESTNET,
     })
-      .addOperation(Operation.payment({
-        destination: destinationAddress,
-        asset: Asset.native(),
-        amount: String(amount),
-      }))
+      .addOperation(operation)
       .setTimeout(30)
       .build();
 
@@ -100,7 +118,14 @@ const createWalletProvider = ({ config, horizonService, horizonServer } = {}) =>
     transaction.sign(sourceKeypair);
 
     // Submit to Horizon
-    const response = await horizonServer.submitTransaction(transaction);
+    let response;
+    try {
+      response = await horizonServer.submitTransaction(transaction);
+    } catch (error) {
+      const resultCodes = error.response?.data?.extras?.result_codes;
+      console.error('[HORIZON SUBMIT ERROR]', resultCodes || error.message);
+      throw new Error(`Transaction failed: ${JSON.stringify(resultCodes || error.message)}`);
+    }
 
     return {
       reference: `withdraw_${crypto.randomUUID()}`,
