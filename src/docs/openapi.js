@@ -1,8 +1,5 @@
 const { z } = require('zod');
-const { extendZodWithOpenApi, OpenAPIRegistry, OpenApiGeneratorV3 } = require('@asteasolutions/zod-to-openapi');
-
-// Extend Zod globally
-extendZodWithOpenApi(z);
+const { OpenAPIRegistry, OpenApiGeneratorV3 } = require('@asteasolutions/zod-to-openapi');
 
 const registry = new OpenAPIRegistry();
 

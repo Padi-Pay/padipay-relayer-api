@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./docs/zod-setup');
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 global.fetch = require('node-fetch');
