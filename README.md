@@ -69,16 +69,18 @@ The current development milestone focuses on proving the complete happy path for
 The v0.1.0 MVP includes:
 
 * Express API foundation.
-* Request validation.
+* Request validation using Zod.
+* Authentication and user management.
 * Soroban transaction construction.
 * Fee bump transaction sponsorship.
 * Transaction submission.
 * Transaction status lookup.
 * Error handling.
+* OpenAPI (Swagger) Documentation.
 * Unit tests (Jest).
 * Continuous Integration.
 
-Advanced capabilities such as persistence, authentication, retry queues, metrics, and rate limiting are intentionally deferred to future milestones.
+Advanced capabilities such as retry queues, metrics, and rate limiting are intentionally deferred to future milestones.
 
 ## Project Structure
 
@@ -113,10 +115,14 @@ The API exposes endpoints used by the PadiPay frontend and WhatsApp bot to inter
 
 The MVP focuses on:
 
+* User authentication and registration.
+* Wallet generation and management.
 * Creating escrow transactions.
 * Locking escrow funds.
 * Releasing escrow funds.
 * Refunding escrow funds.
+* Executing timeouts.
+* Resolving disputes.
 * Checking transaction status.
 
 The exact API surface may evolve as the project progresses.
@@ -180,14 +186,13 @@ docker run -p 3000:3000 --env-file .env padipay-relayer-api
 Typical configuration includes:
 
 ```text
-PORT=
-STELLAR_RPC_URL=
-NETWORK_PASSPHRASE=
+PORT=5000
+RPC_URL=https://soroban-testnet.stellar.org
+HORIZON_URL=https://horizon-testnet.stellar.org
+NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 CONTRACT_ID=
 FEE_BUMP_SECRET_KEY=
-DATABASE_URL=
-JWT_SECRET=
-GOOGLE_CLIENT_ID=
+DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/padipay
 ```
 
 Additional configuration options may be introduced in future releases.
