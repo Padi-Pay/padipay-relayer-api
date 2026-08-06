@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const axios = require('axios');
 
 /**
  * Factory function for the generic Wallet Provider abstraction.
@@ -24,16 +25,33 @@ const createWalletProvider = ({ config, horizonService } = {}) => {
    * @returns {Promise<Object>} A funding receipt describing the initiated top-up.
    */
   const fundWallet = async ({ walletAddress, amount, asset }) => {
-    // A concrete integration would dispatch to the configured ramp/faucet here.
-    // Until then we return a deterministic receipt describing the request.
-    return {
-      reference: `fund_${crypto.randomUUID()}`,
-      status: 'PENDING',
-      walletAddress,
-      amount,
-      asset,
-      network: config?.NETWORK_PASSPHRASE ?? 'unknown',
-    };
+    try {
+      // In a real production system, this would call a fiat on-ramp or a managed liquidity pool.
+      // For the testnet environment, we interface with Stellar's Friendbot directly to fund the wallet.
+      const response = await axios.get(`https://friendbot.stellar.org/?addr=${walletAddress}`);
+      
+      return {
+        reference: `fund_${crypto.randomUUID()}`,
+        status: 'SUCCESS',
+        walletAddress,
+        amount: '10000', // Friendbot always gives 10,000 XLM
+        asset: 'XLM',
+        network: config?.NETWORK_PASSPHRASE ?? 'unknown',
+        txId: response.data?.hash
+      };
+    } catch (error) {
+      console.error('[FRIENDBOT ERROR]', error.response?.data || error.message);
+      // If the account is already funded, Friendbot might throw an error depending on the network.
+      // But we still return a stub receipt if it fails, so it doesn't crash the API.
+      return {
+        reference: `fund_${crypto.randomUUID()}`,
+        status: 'FAILED',
+        walletAddress,
+        amount,
+        asset,
+        network: config?.NETWORK_PASSPHRASE ?? 'unknown',
+      };
+    }
   };
 
   /**

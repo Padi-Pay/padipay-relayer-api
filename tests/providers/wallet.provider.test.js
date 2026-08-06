@@ -1,7 +1,11 @@
 const { createWalletProvider } = require('../../src/providers/wallet.provider');
+const axios = require('axios');
+
+jest.mock('axios');
 
 describe('Wallet Provider', () => {
   it('should return a funding receipt for a top-up request', async () => {
+    axios.get.mockResolvedValue({ data: { hash: 'tx_hash_123' } });
     const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' } });
 
     const receipt = await provider.fundWallet({
@@ -11,9 +15,9 @@ describe('Wallet Provider', () => {
     });
 
     expect(receipt).toMatchObject({
-      status: 'PENDING',
+      status: 'SUCCESS',
       walletAddress: 'G_WALLET',
-      amount: '1000',
+      amount: '10000',
       asset: 'XLM',
       network: 'Test SDF Network',
     });
@@ -21,6 +25,7 @@ describe('Wallet Provider', () => {
   });
 
   it('should generate a unique reference per request', async () => {
+    axios.get.mockResolvedValue({ data: { hash: 'tx_hash_123' } });
     const provider = createWalletProvider();
 
     const first = await provider.fundWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
@@ -30,11 +35,22 @@ describe('Wallet Provider', () => {
   });
 
   it('should fall back to an unknown network when config is absent', async () => {
+    axios.get.mockResolvedValue({ data: { hash: 'tx_hash_123' } });
     const provider = createWalletProvider();
 
     const receipt = await provider.fundWallet({ walletAddress: 'G_A', amount: '1', asset: 'XLM' });
 
     expect(receipt.network).toBe('unknown');
+  });
+
+  it('should return a FAILED receipt if friendbot errors', async () => {
+    axios.get.mockRejectedValue(new Error('Friendbot error'));
+    const provider = createWalletProvider({ config: { NETWORK_PASSPHRASE: 'Test SDF Network' } });
+
+    const receipt = await provider.fundWallet({ walletAddress: 'G_A', amount: '1000', asset: 'XLM' });
+
+    expect(receipt.status).toBe('FAILED');
+    expect(receipt.reference).toMatch(/^fund_/);
   });
 
   describe('withdrawFromWallet', () => {
