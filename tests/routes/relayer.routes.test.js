@@ -26,6 +26,21 @@ jest.mock('../../src/services/escrow-funding.service', () => ({
   }),
 }));
 
+jest.mock('../../src/providers/wallet.provider', () => ({
+  createWalletProvider: jest.fn().mockReturnValue({
+    fundWallet: jest.fn().mockResolvedValue({
+      reference: 'fund_mock',
+      status: 'PENDING',
+      walletAddress: 'G_WALLET_ADDRESS',
+      amount: '1000',
+      asset: 'XLM',
+      network: 'Test SDF Network',
+    }),
+    withdrawFromWallet: jest.fn(),
+    getBalance: jest.fn(),
+  }),
+}));
+
 const mockFindByPublicKey = jest.fn();
 
 jest.mock('../../src/repositories/wallet.repository', () => {
