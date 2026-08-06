@@ -1,4 +1,6 @@
 require('dotenv').config();
+const dns = require('node:dns');
+dns.setDefaultResultOrder('ipv4first');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { loadConfig } = require('./config/env.config');
 const express = require('express');
