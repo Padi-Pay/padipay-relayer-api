@@ -22,5 +22,5 @@ USER node
 # Expose the API port (defaults to 3000)
 EXPOSE 3000
 
-# Start the application with automated migrations
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+# Start the application with automated database push
+CMD ["sh", "-c", "npx prisma db push && npm start"]
