@@ -6,6 +6,7 @@ global.fetch = require('node-fetch');
 const StellarSdk = require('@stellar/stellar-sdk');
 const { loadConfig } = require('./config/env.config');
 const express = require('express');
+const cors = require('cors');
 const { createRelayerRoutes } = require('./routes/relayer.routes');
 const healthRoutes = require('./routes/health.routes');
 const errorHandler = require('./middleware/error.middleware');
@@ -56,6 +57,23 @@ const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
 const app = express();
 const PORT = config.PORT;
+
+// Enable CORS
+const allowedOrigins = config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (config.ALLOWED_ORIGINS === '*') return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 
 // Middleware to parse JSON bodies
 app.use(express.json());

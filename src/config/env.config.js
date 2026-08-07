@@ -12,6 +12,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters'),
   GOOGLE_CLIENT_ID: z.string().min(1, 'Google Client ID is required'),
+  ALLOWED_ORIGINS: z.string().default('*'),
 });
 
 const loadConfig = () => {
