@@ -6,6 +6,10 @@ WORKDIR /app
 # Copy package metadata
 COPY package*.json ./
 
+# Copy Prisma schema and configuration so postinstall can generate the client
+COPY prisma/ prisma/
+COPY prisma.config.ts ./
+
 # Install production dependencies
 RUN npm ci --omit=dev
 
