@@ -51,7 +51,7 @@ describe('Error Middleware', () => {
 
   it('should default to 500 INTERNAL_ERROR for unhandled generic errors', () => {
     const err = new Error('Unexpected');
-    
+
     // Suppress console.error for this test
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -63,7 +63,36 @@ describe('Error Middleware', () => {
       message: 'Internal Server Error',
       error: 'INTERNAL_ERROR',
     });
-    
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should include the request correlation ID in the response for an AppError', () => {
+    req.id = 'test-correlation-id-1';
+    const err = new AppError('Custom Error', 400, 'CUSTOM_ERR');
+
+    errorHandler(err, req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ correlationId: 'test-correlation-id-1' })
+    );
+  });
+
+  it('should include the request correlation ID in the response and the log for an unexpected error', () => {
+    req.id = 'test-correlation-id-2';
+    const err = new Error('Unexpected');
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    errorHandler(err, req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ correlationId: 'test-correlation-id-2' })
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('test-correlation-id-2'),
+      err
+    );
+
     consoleSpy.mockRestore();
   });
 });
