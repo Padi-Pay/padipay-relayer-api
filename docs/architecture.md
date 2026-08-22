@@ -304,5 +304,6 @@ Planned improvements include:
 For detailed information on how this architecture works, please see our documentation hub:
 
 
+- [Database Schema and ERD](./database-schema.md)
 - [Setup Guide](./docs/setup-guide.md)
 - [Contributing Guidelines](./docs/contributing.md)
