@@ -240,5 +240,57 @@ describe('Escrow Orchestration Integration', () => {
         expect.objectContaining({ where: { id: intentId } })
       );
     });
+
+    it('should not crash or corrupt state when synchronization is triggered twice', async () => {
+      const intentId = 'intent-dup-001';
+      const createdIntent = {
+        id: intentId,
+        userId: 'test-user-id',
+        buyerAddress: TEST_BUYER,
+        sellerAddress: TEST_SELLER,
+        amount: '100',
+        asset: 'XLM',
+        actionType: 'CREATE',
+        status: 'PENDING',
+        onChainEscrowId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const lockedIntent = {
+        ...createdIntent,
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      };
+
+      prisma.escrowIntent.findUnique.mockResolvedValue(createdIntent);
+      prisma.escrowIntent.update.mockResolvedValue(lockedIntent);
+
+      const firstResult = await escrowService.syncEscrowStatus(intentId, {
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      });
+
+      const secondResult = await escrowService.syncEscrowStatus(intentId, {
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      });
+
+      expect(firstResult.status).toBe('LOCKED');
+      expect(firstResult.onChainEscrowId).toBe(MOCK_ON_CHAIN_ESCROW_ID);
+
+      expect(secondResult.status).toBe('LOCKED');
+      expect(secondResult.onChainEscrowId).toBe(MOCK_ON_CHAIN_ESCROW_ID);
+
+      expect(prisma.escrowIntent.update).toHaveBeenCalledTimes(2);
+      expect(prisma.escrowIntent.update).toHaveBeenNthCalledWith(1, {
+        where: { id: intentId },
+        data: { status: 'LOCKED', onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID },
+      });
+      expect(prisma.escrowIntent.update).toHaveBeenNthCalledWith(2, {
+        where: { id: intentId },
+        data: { status: 'LOCKED', onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID },
+      });
+    });
   });
 });
