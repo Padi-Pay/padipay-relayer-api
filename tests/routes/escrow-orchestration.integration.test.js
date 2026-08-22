@@ -66,6 +66,7 @@ jest.mock('../../src/repositories/wallet.repository', () => ({
 
 const { createRelayerRoutes } = require('../../src/routes/relayer.routes');
 const { createEscrowService } = require('../../src/services/escrow.service');
+const { EscrowIntentRepository } = require('../../src/repositories/escrow-intent.repository');
 const prisma = require('../../src/clients/prisma.client');
 const { loadConfig } = require('../../src/config/env.config');
 
@@ -92,11 +93,7 @@ describe('Escrow Orchestration Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const escrowIntentRepository = {
-      create: prisma.escrowIntent.create,
-      findById: prisma.escrowIntent.findUnique,
-      update: prisma.escrowIntent.update,
-    };
+    const escrowIntentRepository = new EscrowIntentRepository(prisma);
 
     const transactionRepository = {
       create: prisma.transaction.create,
@@ -149,17 +146,99 @@ describe('Escrow Orchestration Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Escrow CREATE action submitted successfully');
 
-      expect(prisma.escrowIntent.create).toHaveBeenCalledWith(expect.objectContaining({
+      expect(prisma.escrowIntent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          buyerAddress: TEST_BUYER,
+          sellerAddress: TEST_SELLER,
+          amount: '100',
+          actionType: 'CREATE',
+          status: 'PENDING',
+        }),
+      });
+
+      const createCallData = prisma.escrowIntent.create.mock.calls[0][0].data;
+      expect(createCallData.status).toBe('PENDING');
+      expect(createCallData.onChainEscrowId).toBeUndefined();
+    });
+  });
+
+  describe('On-chain synchronization', () => {
+    it('should transition EscrowIntent from PENDING to LOCKED with a valid onChainEscrowId', async () => {
+      const intentId = 'intent-sync-001';
+      const createdIntent = {
+        id: intentId,
+        userId: 'test-user-id',
         buyerAddress: TEST_BUYER,
         sellerAddress: TEST_SELLER,
-        amount: '100',
+        amount: '250',
+        asset: 'XLM',
         actionType: 'CREATE',
         status: 'PENDING',
-      }));
+        onChainEscrowId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-      const createCallArgs = prisma.escrowIntent.create.mock.calls[0][0];
-      expect(createCallArgs.status).toBe('PENDING');
-      expect(createCallArgs.onChainEscrowId).toBeUndefined();
+      const updatedIntent = {
+        ...createdIntent,
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      };
+
+      prisma.escrowIntent.findUnique.mockResolvedValue(createdIntent);
+      prisma.escrowIntent.update.mockResolvedValue(updatedIntent);
+
+      const result = await escrowService.syncEscrowStatus(intentId, {
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      });
+
+      expect(prisma.escrowIntent.findUnique).toHaveBeenCalledWith({ where: { id: intentId } });
+
+      expect(prisma.escrowIntent.update).toHaveBeenCalledWith({
+        where: { id: intentId },
+        data: {
+          status: 'LOCKED',
+          onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+        },
+      });
+
+      expect(result.status).toBe('LOCKED');
+      expect(result.onChainEscrowId).toBe(MOCK_ON_CHAIN_ESCROW_ID);
+    });
+
+    it('should update the same EscrowIntent rather than creating a new one', async () => {
+      const intentId = 'intent-same-001';
+      const createdIntent = {
+        id: intentId,
+        userId: 'test-user-id',
+        buyerAddress: TEST_BUYER,
+        sellerAddress: TEST_SELLER,
+        amount: '500',
+        asset: 'XLM',
+        actionType: 'CREATE',
+        status: 'PENDING',
+        onChainEscrowId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      prisma.escrowIntent.findUnique.mockResolvedValue(createdIntent);
+      prisma.escrowIntent.update.mockResolvedValue({
+        ...createdIntent,
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      });
+
+      await escrowService.syncEscrowStatus(intentId, {
+        status: 'LOCKED',
+        onChainEscrowId: MOCK_ON_CHAIN_ESCROW_ID,
+      });
+
+      expect(prisma.escrowIntent.update).toHaveBeenCalledTimes(1);
+      expect(prisma.escrowIntent.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: intentId } })
+      );
     });
   });
 });
