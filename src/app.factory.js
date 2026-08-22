@@ -17,7 +17,6 @@ const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
 const { createHorizonService } = require('./services/horizon.service');
 const { createStellarService } = require('./services/stellar.service');
-const { createEmbeddedWalletProvider } = require('./providers/embedded-wallet.provider');
 const { createWalletProvider } = require('./providers/wallet.provider');
 
 const prisma = require('./clients/prisma.client');

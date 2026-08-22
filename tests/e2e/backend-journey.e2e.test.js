@@ -1,8 +1,8 @@
 const { Keypair } = require('@stellar/stellar-sdk');
 
+// Deterministic test identity (unique per run to avoid collisions)
 const TEST_EMAIL = `e2e-journey-${Date.now()}@test.com`;
 const TEST_PASSWORD = 'E2eSecure1!';
-
 const JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long';
 
 const mockKeypair = Keypair.random();
@@ -119,7 +119,7 @@ process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com
 process.env.ALLOWED_ORIGINS = '*';
 
 const request = require('supertest');
-const StellarSdk = require('@stellar/stellar-sdk');
+const jwt = require('jsonwebtoken');
 
 const mockTxBuilder = {
   buildTransaction: jest.fn(),
@@ -159,7 +159,7 @@ const app = createApp({
   horizonService: mockHorizonService,
 });
 
-function cleanDatabase() {
+function resetDatabase() {
   mockUsers.clear();
   mockWallets.clear();
   mockEscrowIntents.clear();
@@ -177,7 +177,7 @@ describe('E2E Backend Journey', () => {
   let buyerPublicKey;
 
   beforeAll(() => {
-    cleanDatabase();
+    resetDatabase();
 
     const unsignedXdr = 'AAAAAgAAAADk1rZJpLmW6gH3gEcYJ6Y1zZBSYJ1KHoNyYaUD2dOheQAAAAAAAAAAJAAAAABAAAAAAAAB3AAAAALdmVyaWZpZWQ=';
     mockTxBuilder.buildTransaction.mockResolvedValue(unsignedXdr);
@@ -193,7 +193,7 @@ describe('E2E Backend Journey', () => {
   });
 
   afterAll(() => {
-    cleanDatabase();
+    resetDatabase();
   });
 
   it('should complete the full backend journey: Register → JWT → Profile → Wallet → Submit Escrow', async () => {
@@ -252,10 +252,10 @@ describe('E2E Backend Journey', () => {
     expect(profileRes.body.data.email).toBe(TEST_EMAIL);
     expect(profileRes.body.data).not.toHaveProperty('passwordHash');
 
-    // Verify JWT carries correct user identity
-    const jwt = require('jsonwebtoken');
+    // Verify state propagation: the JWT carries the registered user's identity
     const decoded = jwt.verify(token, JWT_SECRET);
     expect(decoded.id).toBe(registeredUserId);
+    expect(decoded.role).toBe('USER');
 
     // ── Step 4: Fetch Wallet (authenticated) ─────────────────────────
     const walletRes = await request(app)
@@ -269,9 +269,13 @@ describe('E2E Backend Journey', () => {
     expect(walletRes.body.data.publicKey).toBe(buyerPublicKey);
     expect(walletRes.body.data).not.toHaveProperty('encryptedSecretKey');
 
-    // Verify wallet belongs to the authenticated user
+    // Verify state propagation: wallet belongs to the same authenticated user
     const walletInDb = mockWallets.get(walletRes.body.data.id);
     expect(walletInDb.userId).toBe(registeredUserId);
+
+    // Verify no secret key leakage in HTTP response
+    expect(walletRes.body.data).not.toHaveProperty('encryptedSecretKey');
+    expect(walletRes.body.data).not.toHaveProperty('userId');
 
     // ── Step 5: Submit Escrow (authenticated) ────────────────────────
     const sellerKeypair = Keypair.random();
@@ -304,11 +308,12 @@ describe('E2E Backend Journey', () => {
     expect(createdIntent.status).toBe('PENDING');
     expect(createdIntent.userId).toBe(registeredUserId);
 
-    // Verify transaction was recorded
+    // Verify transaction was recorded against the escrow intent
     expect(mockTxClient.transaction.create).toHaveBeenCalledTimes(1);
     const recordedTx = mockTxClient.transaction.create.mock.calls[0][0].data;
     expect(recordedTx.txHash).toBe('e2e-test-tx-hash-001');
     expect(recordedTx.status).toBe('SUCCESS');
+    expect(recordedTx.escrowIntentId).toBeDefined();
   });
 
   it('should reject unauthenticated requests to protected endpoints', async () => {
