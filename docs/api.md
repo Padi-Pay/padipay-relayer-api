@@ -38,12 +38,13 @@ All successful API responses are returned as JSON objects containing the relevan
 *(Note: Some endpoints like health check may return slightly different top-level keys like `{"status": "ok"}`)*
 
 **Standard Error Response Envelope:**
-In the event of an error, the API returns a structured JSON payload detailing the error domain, message, and optionally, specific issues.
+In the event of an error, the API returns a structured JSON payload detailing the error domain, message, correlation ID, and optionally, specific issues.
 
 ```json
 {
   "error": "VALIDATION_ERROR",
   "message": "Invalid request payload",
+  "correlationId": "b3b3c1de-7e2a-4c1a-9f0e-2a6a8f9d1c4e",
   "issues": [
     {
       "path": "body.actionType",
@@ -63,6 +64,12 @@ The API uses standardized domain error codes mapped to standard HTTP status code
 | 500         | `RPC_ERROR`          | Network submission to the Soroban RPC server failed or was rejected. |
 | 500         | `STELLAR_ERROR`      | Internal transaction building, signing, or XDR conversion failed. |
 | 500         | `INTERNAL_ERROR`     | An unexpected runtime exception occurred within the Relayer. |
+
+### 6.1. Correlation IDs
+
+Every request is assigned a correlation ID, returned on the `X-Correlation-ID` response header and, for error responses, also included as `correlationId` in the JSON body. The same ID is written alongside the corresponding server log line for that request, so quoting it in a support ticket lets a maintainer locate the exact request in the logs.
+
+A caller may supply its own ID by sending the `X-Correlation-ID` request header (useful for tracing a request across services); the relayer reuses it verbatim as long as it is a safe token (letters, digits, and hyphens, 64 characters or fewer). Otherwise — including when no header is sent — the relayer generates a new UUID.
 
 ## 7. API Endpoints
 

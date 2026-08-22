@@ -179,6 +179,21 @@ Responsibilities include:
 * Catching standardized domain errors (e.g., `AppError`, `StellarError`).
 * Abstracting away raw SDK stack traces and Soroban RPC error payloads.
 * Ensuring the client receives curated, safe JSON error envelopes.
+* Including the request's correlation ID in both the JSON error body and the server log line, so a client-reported issue can be matched to its exact server-side log entry.
+
+---
+
+## Correlation ID Middleware
+
+The Correlation ID layer assigns every request a unique identifier before any other middleware runs.
+
+Responsibilities include:
+
+* Reusing a client-supplied `X-Correlation-ID` request header when it is a safe token, or generating a new UUID otherwise.
+* Attaching the ID to `req.id` so downstream middleware, routes, and the error handler can reference it.
+* Returning the same ID on the `X-Correlation-ID` response header for every request, success or failure.
+
+This gives every request a stable identifier that ties together its client-visible response and its server-side log line, without introducing full distributed tracing.
 
 ---
 

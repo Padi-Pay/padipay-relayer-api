@@ -11,6 +11,7 @@ const { createRelayerRoutes } = require('./routes/relayer.routes');
 const healthRoutes = require('./routes/health.routes');
 const errorHandler = require('./middleware/error.middleware');
 const { authenticate } = require('./middleware/auth.middleware');
+const { correlationId } = require('./middleware/correlation-id.middleware');
 
 const { createTransactionBuilder } = require('./builders/transaction.builder');
 const { createEscrowService } = require('./services/escrow.service');
@@ -57,6 +58,11 @@ const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
 
 const app = express();
 const PORT = config.PORT;
+
+// Assign a correlation ID to every request before any other middleware runs,
+// so it is available to every downstream handler (including CORS/body-parse
+// failures) and to the centralized error handler.
+app.use(correlationId);
 
 // Enable CORS
 const allowedOrigins = config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());

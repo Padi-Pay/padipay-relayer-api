@@ -33,6 +33,7 @@ registry.register('CreateEscrowPayload', escrowSchemas.createEscrowSchema.shape.
 const ErrorResponse = z.object({
   success: z.boolean().default(false),
   message: z.string(),
+  correlationId: z.string().describe('Request correlation ID; quote this when filing a support ticket.'),
   errors: z.array(z.any()).optional(),
 });
 registry.register('ErrorResponse', ErrorResponse);
