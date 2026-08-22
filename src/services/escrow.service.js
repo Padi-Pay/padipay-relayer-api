@@ -138,7 +138,34 @@ const createEscrowService = ({ transactionBuilder, config, userRepository, walle
     });
   };
 
-  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow, recordTransaction, userRepository, walletRepository, escrowIntentRepository };
+  /**
+   * Synchronizes the on-chain escrow state back to the off-chain database.
+   * Called after a blockchain transaction is confirmed to update the
+   * EscrowIntent status and persist the on-chain escrow identifier.
+   * @param {string} escrowIntentId - The EscrowIntent to update.
+   * @param {Object} params - Synchronization parameters.
+   * @param {string} params.status - The new status (e.g. 'LOCKED').
+   * @param {string} [params.onChainEscrowId] - The on-chain escrow identifier.
+   * @returns {Promise<Object>} The updated EscrowIntent.
+   */
+  const syncEscrowStatus = async (escrowIntentId, { status, onChainEscrowId } = {}) => {
+    if (!escrowIntentRepository) {
+      throw new Error('EscrowIntent repository is required for synchronization');
+    }
+
+    const intent = await escrowIntentRepository.findById(escrowIntentId);
+    if (!intent) {
+      throw new Error('Escrow Intent not found');
+    }
+
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (onChainEscrowId !== undefined) updateData.onChainEscrowId = onChainEscrowId;
+
+    return escrowIntentRepository.update(escrowIntentId, updateData);
+  };
+
+  return { createEscrow, lockEscrow, releaseEscrow, refundEscrow, recordTransaction, syncEscrowStatus, userRepository, walletRepository, escrowIntentRepository };
 };
 
 module.exports = { createEscrowService };
