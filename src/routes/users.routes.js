@@ -8,13 +8,6 @@ const AppError = require('../errors/AppError');
 
 const userRepository = new UserRepository(prisma);
 
-const sanitizeUser = (user) => {
-  if (!user) return null;
-  const sanitized = { ...user };
-  delete sanitized.passwordHash;
-  return sanitized;
-};
-
 router.get('/', async (req, res, next) => {
   try {
     const user = await userRepository.findById(req.user.id);
@@ -25,7 +18,7 @@ router.get('/', async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'User profile retrieved successfully',
-      data: sanitizeUser(user),
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -44,7 +37,7 @@ router.patch('/', validate(updateProfileSchema), async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'User profile updated successfully',
-      data: sanitizeUser(updatedUser),
+      data: updatedUser,
     });
   } catch (error) {
     next(error);

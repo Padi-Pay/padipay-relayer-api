@@ -43,13 +43,11 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       return newUser;
     });
 
-    const userWithoutPassword = { ...user };
-    delete userWithoutPassword.passwordHash;
-    return userWithoutPassword;
+    return user;
   };
 
   const login = async ({ email, password }) => {
-    const user = await userRepository.findByEmail(email);
+    const user = await userRepository.findByEmail(email, { includePasswordHash: true });
     
     if (!user) {
       throw new AppError('Invalid email or password', 401);
@@ -60,9 +58,6 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       throw new AppError('Invalid email or password', 401);
     }
 
-    const userWithoutPassword = { ...user };
-    delete userWithoutPassword.passwordHash;
-
     const { JWT_SECRET } = loadConfig();
     const token = jwt.sign(
       { id: user.id, role: user.role },
@@ -70,7 +65,8 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       { expiresIn: '1d' }
     );
 
-    return { user: userWithoutPassword, token };
+    delete user.passwordHash;
+    return { user, token };
   };
 
   const googleSignIn = async ({ idToken }) => {
@@ -125,16 +121,13 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
         });
       }
 
-      const userWithoutPassword = { ...user };
-      delete userWithoutPassword.passwordHash;
-
       const token = jwt.sign(
         { id: user.id, role: user.role },
         JWT_SECRET,
         { expiresIn: '1d' }
       );
 
-      return { user: userWithoutPassword, token };
+      return { user, token };
     } catch (error) {
       if (error instanceof AppError || error.statusCode) throw error;
       throw new AppError('Invalid Google token', 401);

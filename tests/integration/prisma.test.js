@@ -10,14 +10,13 @@ describe('Prisma Integration Test Framework', () => {
     });
 
     expect(user.email).toBe('test@example.com');
+    expect(user).not.toHaveProperty('passwordHash');
 
     const count = await prisma.user.count();
     expect(count).toBe(1);
   });
 
   it('should assert the database is empty', async () => {
-    // This test proves that the teardown logic truncated the table
-    // after the previous test execution.
     const count = await prisma.user.count();
     expect(count).toBe(0);
   });

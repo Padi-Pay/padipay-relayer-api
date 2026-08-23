@@ -49,7 +49,6 @@ describe('User Routes', () => {
         email: 'test@example.com',
         name: 'Test User',
         role: 'USER',
-        passwordHash: 'secret-hash',
       });
 
       const res = await request(app)
@@ -84,7 +83,7 @@ describe('User Routes', () => {
   describe('PATCH /api/users/me', () => {
     it('returns 200 and updates allowed fields successfully', async () => {
       mockFindById.mockResolvedValue({ id: 'user-123', name: 'Old Name' });
-      mockUpdate.mockResolvedValue({ id: 'user-123', name: 'New Name', passwordHash: 'hash' });
+      mockUpdate.mockResolvedValue({ id: 'user-123', name: 'New Name' });
 
       const res = await request(app)
         .patch('/api/users/me')
