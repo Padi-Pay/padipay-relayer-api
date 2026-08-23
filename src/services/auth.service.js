@@ -4,9 +4,14 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const AppError = require('../errors/AppError');
 const { loadConfig } = require('../config/env.config');
+const { AUDIT_ACTIONS } = require('./audit-logger.service');
 
-const createAuthService = ({ userRepository, passwordResetTokenRepository, walletProvider, prisma, UserRepository, WalletRepository }) => {
-  const register = async ({ email, password }) => {
+// No-op fallback so callers that don't inject auditLogger (e.g. existing tests)
+// continue to work without changes.
+const NO_OP_LOGGER = { log: () => {} };
+
+const createAuthService = ({ userRepository, passwordResetTokenRepository, walletProvider, prisma, UserRepository, WalletRepository, auditLogger = NO_OP_LOGGER }) => {
+  const register = async ({ email, password }, { ip = null, correlationId = null } = {}) => {
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError('Email already in use', 409);
@@ -43,20 +48,42 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       return newUser;
     });
 
+    auditLogger.log({
+      action: AUDIT_ACTIONS.USER_REGISTERED,
+      userId: user.id,
+      ip,
+      correlationId,
+      meta: { email },
+    });
+
     const userWithoutPassword = { ...user };
     delete userWithoutPassword.passwordHash;
     return userWithoutPassword;
   };
 
-  const login = async ({ email, password }) => {
+  const login = async ({ email, password }, { ip = null, correlationId = null } = {}) => {
     const user = await userRepository.findByEmail(email);
     
     if (!user) {
+      auditLogger.log({
+        action: AUDIT_ACTIONS.LOGIN_FAILED,
+        userId: null,
+        ip,
+        correlationId,
+        meta: { reason: 'User not found' },
+      });
       throw new AppError('Invalid email or password', 401);
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
+      auditLogger.log({
+        action: AUDIT_ACTIONS.LOGIN_FAILED,
+        userId: user.id,
+        ip,
+        correlationId,
+        meta: { reason: 'Invalid password' },
+      });
       throw new AppError('Invalid email or password', 401);
     }
 
@@ -70,10 +97,18 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       { expiresIn: '1d' }
     );
 
+    auditLogger.log({
+      action: AUDIT_ACTIONS.LOGIN_SUCCESS,
+      userId: user.id,
+      ip,
+      correlationId,
+      meta: { email },
+    });
+
     return { user: userWithoutPassword, token };
   };
 
-  const googleSignIn = async ({ idToken }) => {
+  const googleSignIn = async ({ idToken }, options = {}) => {
     const { GOOGLE_CLIENT_ID, JWT_SECRET } = loadConfig();
     const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -134,6 +169,14 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
         { expiresIn: '1d' }
       );
 
+      auditLogger.log({
+        action: AUDIT_ACTIONS.GOOGLE_SIGNIN_SUCCESS,
+        userId: user.id,
+        ip: options.ip || null,
+        correlationId: options.correlationId || null,
+        meta: { email: user.email },
+      });
+
       return { user: userWithoutPassword, token };
     } catch (error) {
       if (error instanceof AppError || error.statusCode) throw error;
@@ -141,7 +184,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
     }
   };
 
-  const requestPasswordReset = async ({ email }) => {
+  const requestPasswordReset = async ({ email }, { ip = null, correlationId = null } = {}) => {
     const user = await userRepository.findByEmail(email);
     if (user) {
       const rawToken = crypto.randomBytes(32).toString('hex');
@@ -160,13 +203,21 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
 
       // Log raw token for MVP testing (since no email service is hooked up)
       console.log(`[PASSWORD RECOVERY] Reset token for ${email}: ${rawToken}`);
+
+      auditLogger.log({
+        action: AUDIT_ACTIONS.PASSWORD_RESET_REQUESTED,
+        userId: user.id,
+        ip,
+        correlationId,
+        meta: {},
+      });
     }
 
     // Always return success to prevent email enumeration
     return { success: true };
   };
 
-  const resetPassword = async ({ token, newPassword }) => {
+  const resetPassword = async ({ token, newPassword }, { ip = null, correlationId = null } = {}) => {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const resetRecord = await passwordResetTokenRepository.findByTokenHash(tokenHash);
 
@@ -182,6 +233,14 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
     
     // Mark token as used
     await passwordResetTokenRepository.markUsed(resetRecord.id);
+
+    auditLogger.log({
+      action: AUDIT_ACTIONS.PASSWORD_RESET_COMPLETED,
+      userId: resetRecord.userId,
+      ip,
+      correlationId,
+      meta: {},
+    });
 
     return { success: true };
   };

@@ -1,4 +1,7 @@
 const StellarSdk = require('@stellar/stellar-sdk');
+const { AUDIT_ACTIONS } = require('./audit-logger.service');
+
+const NO_OP_LOGGER = { log: () => {} };
 
 /**
  * Factory function for the Escrow Service.
@@ -10,7 +13,7 @@ const StellarSdk = require('@stellar/stellar-sdk');
  * @param {Object} deps.escrowIntentRepository - Escrow Intent Data Access Repository.
  * @param {Object} deps.transactionRepository - Transaction persistence.
  */
-const createEscrowService = ({ transactionBuilder, config, userRepository, walletRepository, escrowIntentRepository, transactionRepository }) => {
+const createEscrowService = ({ transactionBuilder, config, userRepository, walletRepository, escrowIntentRepository, transactionRepository, auditLogger = NO_OP_LOGGER }) => {
   /**
    * Constructs an unsigned contract invocation for creating an escrow.
    * @param {Object} params - Escrow parameters
@@ -32,6 +35,14 @@ const createEscrowService = ({ transactionBuilder, config, userRepository, walle
       actionType: 'CREATE',
       status: 'PENDING',
     }) : { id: 'mock-id' };
+
+    auditLogger.log({
+      action: AUDIT_ACTIONS.ESCROW_INTENT_CREATED,
+      userId: userId || null,
+      ip: null,
+      correlationId: null,
+      meta: { escrowIntentId: escrowIntent.id, buyer, seller, amount, asset: asset || 'XLM' },
+    });
 
     // Hardcoded Testnet XLM address for now
     const tokenAddress = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
