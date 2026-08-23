@@ -17,4 +17,6 @@ if (process.env.NODE_ENV === 'production') {
   prisma = global.prisma;
 }
 
+prisma.$pool = pool;
+
 module.exports = prisma;
