@@ -27,6 +27,13 @@
     },
     "transformIgnorePatterns": [
       "/node_modules/(?!(@stellar|@noble|uint8array-extras)/)"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "setupFiles": [
+      "<rootDir>/tests/setupEnv.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setupAfterEnv.js"
     ]
   },
   "keywords": [
