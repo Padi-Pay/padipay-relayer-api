@@ -30,7 +30,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
         const result = await walletProvider.createWallet(newUser.id);
         address = result.address;
         secret = result.secret;
-      } catch (err) {
+      } catch {
         throw new AppError('Wallet provider is currently unavailable. Please try again later.', 503);
       }
       
@@ -111,7 +111,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
             const result = await walletProvider.createWallet(newUser.id);
             address = result.address;
             secret = result.secret;
-          } catch (err) {
+          } catch {
             throw new AppError('Wallet provider is currently unavailable. Please try again later.', 503);
           }
           

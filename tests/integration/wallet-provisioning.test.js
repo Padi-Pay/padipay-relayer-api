@@ -41,7 +41,6 @@ describe('Wallet Provider Abstraction - Mock Tests', () => {
     };
 
     const userRepository = new UserRepository(prisma);
-    const walletRepository = new WalletRepository(prisma);
     const passwordResetTokenRepository = new PasswordResetTokenRepository(prisma);
 
     // Inject the failing mock adapter into the DI container specifically for this test suite.
