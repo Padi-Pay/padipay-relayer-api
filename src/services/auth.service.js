@@ -25,7 +25,14 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
         passwordHash: hashedPassword,
       });
 
-      const { address, secret } = await walletProvider.createWallet(newUser.id);
+      let address, secret;
+      try {
+        const result = await walletProvider.createWallet(newUser.id);
+        address = result.address;
+        secret = result.secret;
+      } catch (err) {
+        throw new AppError('Wallet provider is currently unavailable. Please try again later.', 503);
+      }
       
       await txWalletRepository.create({
         userId: newUser.id,
@@ -96,9 +103,17 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
             email,
             name,
             googleId,
+            passwordHash: '', // Placeholder since Google users do not have a password
           });
 
-          const { address, secret } = await walletProvider.createWallet(newUser.id);
+          let address, secret;
+          try {
+            const result = await walletProvider.createWallet(newUser.id);
+            address = result.address;
+            secret = result.secret;
+          } catch (err) {
+            throw new AppError('Wallet provider is currently unavailable. Please try again later.', 503);
+          }
           
           await txWalletRepository.create({
             userId: newUser.id,
@@ -121,7 +136,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
 
       return { user: userWithoutPassword, token };
     } catch (error) {
-      if (error instanceof AppError) throw error;
+      if (error instanceof AppError || error.statusCode) throw error;
       throw new AppError('Invalid Google token', 401);
     }
   };
