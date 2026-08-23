@@ -74,7 +74,7 @@ describe('AuthService', () => {
 
     it('hashes password, registers user and provisions wallet successfully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockTxUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com', passwordHash: 'hashedpassword' });
+      mockTxUserRepository.create.mockResolvedValue({ id: '1', email: 'test@test.com' });
       
       const user = await authService.register({ email: 'test@test.com', password: 'Password1!' });
       
@@ -98,7 +98,7 @@ describe('AuthService', () => {
       let createdHashes = [];
       mockTxUserRepository.create.mockImplementation((data) => {
         createdHashes.push(data.passwordHash);
-        return { id: createdHashes.length.toString(), ...data };
+        return { id: createdHashes.length.toString(), email: data.email };
       });
 
       await authService.register({ email: 'test1@test.com', password: 'Password1!' });

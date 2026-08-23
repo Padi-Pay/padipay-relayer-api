@@ -1,14 +1,24 @@
-jest.mock('../../src/clients/prisma.client', () => ({
-  user: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  }
-}));
+jest.mock('../../src/clients/prisma.client', () => {
+  const mockPrisma = {
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+  };
+  mockPrisma.rawPrisma = {
+    user: {
+      findUnique: jest.fn(),
+    },
+  };
+  return mockPrisma;
+});
 
 const mockPrismaClient = require('../../src/clients/prisma.client');
-const { UserRepository } = require('../../src/repositories/user.repository');describe('UserRepository', () => {
+const { UserRepository } = require('../../src/repositories/user.repository');
+
+describe('UserRepository', () => {
   let repository;
   beforeEach(() => {
     jest.clearAllMocks();
@@ -22,9 +32,16 @@ const { UserRepository } = require('../../src/repositories/user.repository');des
     expect(result.id).toBe('123');
   });
 
-  it('findByEmail calls user.findUnique', async () => {
+  it('findByEmail calls user.findUnique on default client', async () => {
     await repository.findByEmail('test@example.com');
     expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({ where: { email: 'test@example.com' } });
+  });
+
+  it('findByEmail with includePasswordHash uses raw client', async () => {
+    mockPrismaClient.rawPrisma.user.findUnique.mockResolvedValue({ id: '1', email: 'test@example.com', passwordHash: 'hash' });
+    const result = await repository.findByEmail('test@example.com', { includePasswordHash: true });
+    expect(mockPrismaClient.rawPrisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'test@example.com' } });
+    expect(result.passwordHash).toBe('hash');
   });
 
   it('create calls user.create', async () => {
