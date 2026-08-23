@@ -1,23 +1,5 @@
-require('dotenv').config();
-require('./docs/zod-setup');
-const dns = require('node:dns');
-dns.setDefaultResultOrder('ipv4first');
-global.fetch = require('node-fetch');
-const StellarSdk = require('@stellar/stellar-sdk');
 const { loadConfig } = require('./config/env.config');
-const express = require('express');
-const cors = require('cors');
-const { createRelayerRoutes } = require('./routes/relayer.routes');
-const healthRoutes = require('./routes/health.routes');
-const errorHandler = require('./middleware/error.middleware');
-const { authenticate } = require('./middleware/auth.middleware');
-const { correlationId } = require('./middleware/correlation-id.middleware');
-
-const { createTransactionBuilder } = require('./builders/transaction.builder');
-const { createEscrowService } = require('./services/escrow.service');
-const { createHorizonService } = require('./services/horizon.service');
-const { createStellarService } = require('./services/stellar.service');
-const { createEmbeddedWalletProvider } = require('./providers/embedded-wallet.provider');
+const { createApp } = require('./app.factory');
 
 let config;
 try {
@@ -27,88 +9,14 @@ try {
   process.exit(1);
 }
 
-// Initialize Stellar/Soroban dependencies
-const server = new StellarSdk.rpc.Server(config.RPC_URL);
-const horizonServer = new StellarSdk.Horizon.Server(config.HORIZON_URL);
-const contract = new StellarSdk.Contract(config.CONTRACT_ID);
-
-// Initialize Prisma
-const prisma = require('./clients/prisma.client');
-
-// Initialize Repositories
-const { WalletRepository } = require('./repositories/wallet.repository');
-const { createEscrowRepository } = require('./repositories/escrow.repository');
-const { createTransactionRepository } = require('./repositories/transaction.repository');
-
-const walletRepository = new WalletRepository(prisma);
-const escrowRepository = createEscrowRepository({ prisma });
-const transactionRepository = createTransactionRepository({ prisma });
-
-// Bootstrap Dependency Injection Container
-const transactionBuilder = createTransactionBuilder({ server, contract, config });
-const escrowService = createEscrowService({ transactionBuilder, config, escrowIntentRepository: escrowRepository, transactionRepository });
-const horizonService = createHorizonService({ server, horizonServer });
-const stellarService = createStellarService({ config, server });
-
-const { createWalletProvider } = require('./providers/wallet.provider');
-const walletProvider = createWalletProvider({ config, horizonService, horizonServer });
-
-// eslint-disable-next-line no-unused-vars
-const embeddedWalletProvider = createEmbeddedWalletProvider({ config });
-
-const app = express();
-const PORT = config.PORT;
-
-// Assign a correlation ID to every request before any other middleware runs,
-// so it is available to every downstream handler (including CORS/body-parse
-// failures) and to the centralized error handler.
-app.use(correlationId);
-
-// Enable CORS
-const allowedOrigins = config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
-app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (config.ALLOWED_ORIGINS === '*') return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
-
-// Middleware to parse JSON bodies
-app.use(express.json());
-
-const authRoutes = require('./routes/auth.routes');
-const usersRoutes = require('./routes/users.routes');
-const accountsRoutes = require('./routes/accounts.routes');
-const { createWalletsRoutes } = require('./routes/wallets.routes');
-
-// API Routes
-const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
-const walletsRoutes = createWalletsRoutes({ walletProvider, walletRepository });
-
-app.use('/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users/me', authenticate, usersRoutes);
-app.use('/api/accounts/me', authenticate, accountsRoutes);
-app.use('/api/wallets', authenticate, walletsRoutes);
-app.use('/api/relayer', relayerRoutes);
+const app = createApp();
 
 // Swagger API Documentation
 const swaggerUi = require('swagger-ui-express');
 const { generateOpenApiDocument } = require('./docs/openapi');
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
 
-// Error Handling Middleware
-app.use(errorHandler);
-
 // Start server
-app.listen(PORT, () => {
-  console.log(`Stellar Relayer API is running on port ${PORT}`);
+app.listen(config.PORT, () => {
+  console.log(`Stellar Relayer API is running on port ${config.PORT}`);
 });
