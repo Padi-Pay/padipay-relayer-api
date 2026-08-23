@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest --coverage",
+    "test": "jest --runInBand --coverage",
     "lint": "eslint src tests",
     "postinstall": "prisma generate"
   },

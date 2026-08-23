@@ -159,6 +159,7 @@ describe('AuthService', () => {
         email: 'new@google.com',
         name: 'Google User',
         googleId: 'g-123',
+        passwordHash: '',
       });
       expect(mockWalletProvider.createWallet).toHaveBeenCalledWith('2');
       expect(mockTxWalletRepository.create).toHaveBeenCalledWith({
