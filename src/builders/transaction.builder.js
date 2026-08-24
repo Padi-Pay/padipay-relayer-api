@@ -1,6 +1,7 @@
 const StellarSdk = require('@stellar/stellar-sdk');
 const RpcError = require('../errors/RpcError');
 const StellarError = require('../errors/StellarError');
+const logger = require('../config/logger');
 
 /**
  * Factory function to create a dependency-injected transaction builder service.
@@ -40,7 +41,7 @@ const createTransactionBuilder = ({ server, contract, config }) => {
 
       return transaction.toXDR();
     } catch (error) {
-      console.error('[BUILD EXCEPTION]', error);
+      logger.error({ err: error }, '[BUILD EXCEPTION] Failed to build transaction');
       throw new StellarError(`Failed to build transaction: ${error.message}`);
     }
   };

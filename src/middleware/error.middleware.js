@@ -1,4 +1,5 @@
 const AppError = require('../errors/AppError');
+const logger = require('../config/logger');
 
 const errorHandler = (err, req, res, _next) => {
   let statusCode = 500;
@@ -13,7 +14,7 @@ const errorHandler = (err, req, res, _next) => {
   } else {
     // Log unexpected errors, tagged with the request's correlation ID so it
     // can be matched against the ID returned to the client.
-    console.error(`[UNEXPECTED ERROR] [correlationId=${correlationId}]`, err);
+    logger.error({ err, correlationId }, 'Unexpected error');
   }
 
   const response = {

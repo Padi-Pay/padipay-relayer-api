@@ -1,6 +1,7 @@
 const RpcError = require('../errors/RpcError');
 const StellarError = require('../errors/StellarError');
 const StellarSdk = require('@stellar/stellar-sdk');
+const logger = require('../config/logger');
 
 /**
  * Maps raw Stellar network errors and transaction submission responses to standardized domain errors.
@@ -36,7 +37,7 @@ const parseTransactionError = (errorOrResponse) => {
             return new RpcError('Transaction rejected by the network.', 400, 'TRANSACTION_REJECTED');
         }
       } catch (e) {
-        console.error('[ERROR PARSER] Failed to parse errorResultXdr:', e);
+        logger.error({ err: e }, '[ERROR PARSER] Failed to parse errorResultXdr');
         return new RpcError('Transaction rejected with unparseable result.', 400, 'TRANSACTION_REJECTED');
       }
     }
