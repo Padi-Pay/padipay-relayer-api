@@ -3,6 +3,13 @@ const request = require('supertest');
 const { correlationId, CORRELATION_ID_HEADER } = require('../../src/middleware/correlation-id.middleware');
 const errorHandler = require('../../src/middleware/error.middleware');
 const AppError = require('../../src/errors/AppError');
+const logger = require('../../src/config/logger');
+
+jest.mock('../../src/config/logger', () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+}));
 
 // End-to-end proof that a request's correlation ID is consistent across the
 // response header, the JSON error body, and the server log line for that
@@ -56,13 +63,13 @@ describe('Correlation ID end-to-end wiring', () => {
   });
 
   it('logs the same correlation ID that is returned to the client for an unexpected error', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     const res = await request(app).get('/crash');
     const headerId = res.headers[CORRELATION_ID_HEADER.toLowerCase()];
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(headerId), expect.any(Error));
-
-    consoleSpy.mockRestore();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ correlationId: headerId }),
+      'Unexpected error'
+    );
   });
 });
+

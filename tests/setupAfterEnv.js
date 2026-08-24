@@ -5,16 +5,19 @@ afterEach(async () => {
     SELECT tablename FROM pg_tables WHERE schemaname='public'
   `;
 
-  for (const { tablename } of tableNames) {
-    if (tablename !== '_prisma_migrations') {
-      try {
-        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "public"."${tablename}" CASCADE;`);
-      } catch (error) {
-        console.error(`Error truncating table ${tablename}:`, error);
-      }
+  const validTables = tableNames
+    .map((t) => t.tablename)
+    .filter((tablename) => tablename !== '_prisma_migrations');
+
+  if (validTables.length > 0) {
+    const formattedTables = validTables.map((t) => `"public"."${t}"`).join(', ');
+    try {
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${formattedTables} CASCADE;`);
+    } catch (error) {
+      console.error('Error truncating tables:', error);
     }
   }
-});
+}, 30000);
 
 afterAll(async () => {
   await prisma.$disconnect();
@@ -22,3 +25,4 @@ afterAll(async () => {
     await prisma.$pool.end();
   }
 });
+
