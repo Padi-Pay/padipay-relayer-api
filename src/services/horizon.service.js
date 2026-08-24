@@ -1,5 +1,6 @@
 const RpcError = require('../errors/RpcError');
 const { parseTransactionStatus } = require('../utils/status.parser');
+const logger = require('../config/logger');
 
 /**
  * Factory function for the Network Service (Horizon/RPC) handling network queries.
@@ -23,7 +24,7 @@ const createHorizonService = ({ server, horizonServer }) => {
         // Account not found on the network means it has 0 balance (not funded yet)
         return '0.0000000';
       }
-      console.error('[BALANCE EXCEPTION]', error);
+      logger.error({ err: error }, '[BALANCE EXCEPTION] Failed to fetch account balance');
       throw new RpcError('Failed to fetch account balance from Horizon.');
     }
   };
@@ -38,7 +39,7 @@ const createHorizonService = ({ server, horizonServer }) => {
       const response = await server.getTransaction(txId);
       return parseTransactionStatus(response, txId);
     } catch (error) {
-      console.error('[STATUS EXCEPTION]', error);
+      logger.error({ err: error }, '[STATUS EXCEPTION] Failed to fetch transaction status');
       throw new RpcError('Failed to fetch transaction status from RPC.');
     }
   };

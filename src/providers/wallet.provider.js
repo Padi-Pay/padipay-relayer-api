@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const axios = require('axios');
+const logger = require('../config/logger');
 
 /**
  * Factory function for the generic Wallet Provider abstraction.
@@ -40,7 +41,7 @@ const createWalletProvider = ({ config, horizonService, horizonServer } = {}) =>
         txId: response.data?.hash
       };
     } catch (error) {
-      console.error('[FRIENDBOT ERROR]', error.response?.data || error.message);
+      logger.error({ err: error, response: error.response?.data }, '[FRIENDBOT ERROR] Failed to fund wallet via Friendbot');
       // If the account is already funded, Friendbot might throw an error depending on the network.
       // But we still return a stub receipt if it fails, so it doesn't crash the API.
       return {
@@ -123,7 +124,7 @@ const createWalletProvider = ({ config, horizonService, horizonServer } = {}) =>
       response = await horizonServer.submitTransaction(transaction);
     } catch (error) {
       const resultCodes = error.response?.data?.extras?.result_codes;
-      console.error('[HORIZON SUBMIT ERROR]', resultCodes || error.message);
+      logger.error({ err: error, resultCodes }, '[HORIZON SUBMIT ERROR] Transaction submission failed');
       throw new Error(`Transaction failed: ${JSON.stringify(resultCodes || error.message)}`, { cause: error });
     }
 

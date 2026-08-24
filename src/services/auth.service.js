@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const AppError = require('../errors/AppError');
 const { loadConfig } = require('../config/env.config');
 const { AUDIT_ACTIONS } = require('./audit-logger.service');
+const logger = require('../config/logger');
 
 // No-op fallback so callers that don't inject auditLogger (e.g. existing tests)
 // continue to work without changes.
@@ -202,7 +203,7 @@ const createAuthService = ({ userRepository, passwordResetTokenRepository, walle
       });
 
       // Log raw token for MVP testing (since no email service is hooked up)
-      console.log(`[PASSWORD RECOVERY] Reset token for ${email}: ${rawToken}`);
+      logger.info({ email }, `[PASSWORD RECOVERY] Reset token for ${email}: ${rawToken}`);
 
       auditLogger.log({
         action: AUDIT_ACTIONS.PASSWORD_RESET_REQUESTED,
