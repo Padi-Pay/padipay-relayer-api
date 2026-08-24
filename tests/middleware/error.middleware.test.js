@@ -1,5 +1,12 @@
 const errorHandler = require('../../src/middleware/error.middleware');
 const AppError = require('../../src/errors/AppError');
+const logger = require('../../src/config/logger');
+
+jest.mock('../../src/config/logger', () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+}));
 
 describe('Error Middleware', () => {
   let req, res, next;
@@ -13,6 +20,7 @@ describe('Error Middleware', () => {
     };
     next = jest.fn();
     process.env.NODE_ENV = 'production';
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -52,9 +60,6 @@ describe('Error Middleware', () => {
   it('should default to 500 INTERNAL_ERROR for unhandled generic errors', () => {
     const err = new Error('Unexpected');
 
-    // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     errorHandler(err, req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(500);
@@ -64,7 +69,7 @@ describe('Error Middleware', () => {
       error: 'INTERNAL_ERROR',
     });
 
-    consoleSpy.mockRestore();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('should include the request correlation ID in the response for an AppError', () => {
@@ -81,18 +86,16 @@ describe('Error Middleware', () => {
   it('should include the request correlation ID in the response and the log for an unexpected error', () => {
     req.id = 'test-correlation-id-2';
     const err = new Error('Unexpected');
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     errorHandler(err, req, res, next);
 
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ correlationId: 'test-correlation-id-2' })
     );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('test-correlation-id-2'),
-      err
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err, correlationId: 'test-correlation-id-2' }),
+      'Unexpected error'
     );
-
-    consoleSpy.mockRestore();
   });
 });
+
