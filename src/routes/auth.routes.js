@@ -6,6 +6,7 @@ const { createAuthService } = require('../services/auth.service');
 const { UserRepository } = require('../repositories/user.repository');
 const { PasswordResetTokenRepository } = require('../repositories/password-reset-token.repository');
 const prisma = require('../clients/prisma.client');
+const { createAuditLogger } = require('../services/audit-logger.service');
 
 const { WalletRepository } = require('../repositories/wallet.repository');
 const { createEmbeddedWalletProvider } = require('../providers/embedded-wallet.provider');
@@ -14,6 +15,7 @@ const { createEmbeddedWalletProvider } = require('../providers/embedded-wallet.p
 const userRepository = new UserRepository(prisma);
 const passwordResetTokenRepository = new PasswordResetTokenRepository(prisma);
 const walletProvider = createEmbeddedWalletProvider();
+const auditLogger = createAuditLogger();
 
 const authService = createAuthService({ 
   userRepository, 
@@ -21,12 +23,13 @@ const authService = createAuthService({
   walletProvider,
   prisma,
   UserRepository,
-  WalletRepository
+  WalletRepository,
+  auditLogger,
 });
 
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
-    const user = await authService.register(req.body);
+    const user = await authService.register(req.body, { ip: req.ip, correlationId: req.id });
     res.status(201).json({
       success: true,
       message: 'Registration successful',
@@ -39,7 +42,7 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
 
 router.post('/login', validate(loginSchema), async (req, res, next) => {
   try {
-    const result = await authService.login(req.body);
+    const result = await authService.login(req.body, { ip: req.ip, correlationId: req.id });
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -52,7 +55,7 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
 
 router.post('/google', validate(googleSchema), async (req, res, next) => {
   try {
-    const result = await authService.googleSignIn(req.body);
+    const result = await authService.googleSignIn(req.body, { ip: req.ip, correlationId: req.id });
     res.status(200).json({
       success: true,
       message: 'Google Sign-In successful',
@@ -65,7 +68,7 @@ router.post('/google', validate(googleSchema), async (req, res, next) => {
 
 router.post('/recover', validate(recoverSchema), async (req, res, next) => {
   try {
-    const result = await authService.requestPasswordReset(req.body);
+    const result = await authService.requestPasswordReset(req.body, { ip: req.ip, correlationId: req.id });
     res.status(200).json({
       success: true,
       message: 'If the email exists, a password recovery token has been issued',
@@ -78,7 +81,7 @@ router.post('/recover', validate(recoverSchema), async (req, res, next) => {
 
 router.post('/reset', validate(resetPasswordSchema), async (req, res, next) => {
   try {
-    const result = await authService.resetPassword(req.body);
+    const result = await authService.resetPassword(req.body, { ip: req.ip, correlationId: req.id });
     res.status(200).json({
       success: true,
       message: 'Password reset successful',

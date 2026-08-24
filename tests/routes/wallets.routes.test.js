@@ -13,6 +13,7 @@ jest.mock('../../src/middleware/auth.middleware', () => {
 describe('Wallets Routes', () => {
   let mockWalletRepository;
   let mockWalletProvider;
+  let mockAuditLogger;
   let app;
 
   beforeEach(() => {
@@ -25,9 +26,14 @@ describe('Wallets Routes', () => {
       withdrawFromWallet: jest.fn(),
     };
 
+    mockAuditLogger = {
+      log: jest.fn(),
+    };
+
     const walletsRoutes = createWalletsRoutes({
       walletRepository: mockWalletRepository,
       walletProvider: mockWalletProvider,
+      auditLogger: mockAuditLogger,
     });
 
     app = express();
@@ -111,6 +117,9 @@ describe('Wallets Routes', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Invalid Stellar destination address');
+      expect(mockAuditLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'WALLET_WITHDRAWAL_FAILED' })
+      );
     });
 
     it('returns 404 if wallet is not found', async () => {
@@ -143,6 +152,9 @@ describe('Wallets Routes', () => {
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Withdrawal amount exceeds available balance');
+      expect(mockAuditLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'WALLET_WITHDRAWAL_FAILED' })
+      );
     });
 
     it('returns 200 and initiates withdrawal successfully', async () => {
@@ -171,6 +183,9 @@ describe('Wallets Routes', () => {
       expect(res.body.message).toBe('Withdrawal initiated successfully');
       expect(res.body.data).toHaveProperty('reference', 'withdraw_123');
       expect(res.body.data).toHaveProperty('status', 'RESERVED');
+      expect(mockAuditLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'WALLET_WITHDRAWAL_INITIATED' })
+      );
     });
   });
 });

@@ -29,6 +29,7 @@ const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const accountsRoutes = require('./routes/accounts.routes');
 const { createWalletsRoutes } = require('./routes/wallets.routes');
+const { createAuditLogger } = require('./services/audit-logger.service');
 
 const createApp = (overrides = {}) => {
   const config = overrides.config || loadConfig();
@@ -41,8 +42,10 @@ const createApp = (overrides = {}) => {
   const escrowRepository = overrides.escrowRepository || createEscrowRepository({ prisma });
   const transactionRepository = overrides.transactionRepository || createTransactionRepository({ prisma });
 
+  const auditLogger = overrides.auditLogger || createAuditLogger();
+
   const transactionBuilder = overrides.transactionBuilder || createTransactionBuilder({ server, contract, config });
-  const escrowService = overrides.escrowService || createEscrowService({ transactionBuilder, config, escrowIntentRepository: escrowRepository, transactionRepository });
+  const escrowService = overrides.escrowService || createEscrowService({ transactionBuilder, config, escrowIntentRepository: escrowRepository, transactionRepository, auditLogger });
   const horizonService = overrides.horizonService || createHorizonService({ server, horizonServer });
   const stellarService = overrides.stellarService || createStellarService({ config, server });
   const walletProvider = overrides.walletProvider || createWalletProvider({ config, horizonService, horizonServer });
@@ -69,7 +72,7 @@ const createApp = (overrides = {}) => {
   app.use(express.json());
 
   const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
-  const walletsRoutes = createWalletsRoutes({ walletProvider, walletRepository });
+  const walletsRoutes = createWalletsRoutes({ walletProvider, walletRepository, auditLogger });
 
   app.use('/health', healthRoutes);
   app.use('/api/auth', authRoutes);
