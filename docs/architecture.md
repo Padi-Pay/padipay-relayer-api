@@ -320,5 +320,6 @@ For detailed information on how this architecture works, please see our document
 
 
 - [Database Schema and ERD](./database-schema.md)
-- [Setup Guide](./docs/setup-guide.md)
-- [Contributing Guidelines](./docs/contributing.md)
+- [Wallet Provider Integration Guide](./wallet-provider-integration-guide.md)
+- [Setup Guide](./setup-guide.md)
+- [Contributing Guidelines](./contributing.md)
