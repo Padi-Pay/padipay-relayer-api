@@ -228,6 +228,7 @@ For detailed information on how this architecture works, please see our document
 - [Architecture & The Relayer Pattern](./docs/architecture.md)
 - [Database Schema and ERD](./docs/database-schema.md)
 - [API Documentation](./docs/api.md)
+- [Wallet Provider Integration Guide](./docs/wallet-provider-integration-guide.md)
 - [Setup Guide](./docs/setup-guide.md)
 - [Contributing Guidelines](./docs/contributing.md)
 - [Roadmap](./docs/roadmap.md)
