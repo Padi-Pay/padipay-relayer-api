@@ -193,6 +193,7 @@ NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 CONTRACT_ID=
 FEE_BUMP_SECRET_KEY=
 DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/padipay
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 Additional configuration options may be introduced in future releases.
@@ -253,5 +254,4 @@ All work is tracked through GitHub Issues, and contributors are encouraged to ke
 ## License
 
 This project is licensed under the license included in this repository.
-
 

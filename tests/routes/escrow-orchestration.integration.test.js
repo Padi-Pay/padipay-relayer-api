@@ -29,7 +29,7 @@ jest.mock('../../src/config/env.config', () => {
       NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015',
       CONTRACT_ID: StrKey.encodeContract(new Uint8Array(32).fill(1)),
       FEE_BUMP_SECRET_KEY: Keypair.random().secret(),
-      ALLOWED_ORIGINS: '*',
+      ALLOWED_ORIGINS: 'http://localhost:3000,http://127.0.0.1:3000',
     }),
   };
 });

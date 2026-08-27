@@ -4,6 +4,7 @@ const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 global.fetch = global.fetch || require('node-fetch');
 const StellarSdk = require('@stellar/stellar-sdk');
+const helmet = require('helmet');
 const { loadConfig } = require('./config/env.config');
 const express = require('express');
 const cors = require('cors');
@@ -31,8 +32,72 @@ const accountsRoutes = require('./routes/accounts.routes');
 const { createWalletsRoutes } = require('./routes/wallets.routes');
 const { createAuditLogger } = require('./services/audit-logger.service');
 
+const parseAllowedOrigins = (value) => {
+  const origins = value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0) {
+    throw new Error('ALLOWED_ORIGINS must include at least one origin');
+  }
+
+  if (origins.includes('*')) {
+    throw new Error('ALLOWED_ORIGINS cannot contain wildcard origins');
+  }
+
+  return origins;
+};
+
+const createCorsOriginGuard = (allowedOrigins) => {
+  const allowlist = new Set(allowedOrigins);
+
+  return (req, res, next) => {
+    const origin = req.get('Origin');
+
+    if (!origin || allowlist.has(origin)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'CORS origin not allowed',
+    });
+  };
+};
+
+const createSecurityHeadersMiddleware = () => helmet({
+  contentSecurityPolicy: false,
+  frameguard: { action: 'deny' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+    setIf: () => true,
+  },
+});
+
+const createApiContentSecurityPolicy = () => helmet.contentSecurityPolicy({
+  useDefaults: true,
+  directives: {
+    defaultSrc: ["'self'"],
+    baseUri: ["'self'"],
+    connectSrc: ["'self'"],
+    fontSrc: ["'self'", 'data:'],
+    formAction: ["'self'"],
+    frameAncestors: ["'none'"],
+    imgSrc: ["'self'", 'data:'],
+    objectSrc: ["'none'"],
+    scriptSrc: ["'self'"],
+    scriptSrcAttr: ["'none'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    upgradeInsecureRequests: [],
+  },
+});
+
 const createApp = (overrides = {}) => {
   const config = overrides.config || loadConfig();
+  const allowedOrigins = parseAllowedOrigins(config.ALLOWED_ORIGINS);
 
   const server = overrides.server || new StellarSdk.rpc.Server(config.RPC_URL);
   const horizonServer = overrides.horizonServer || new StellarSdk.Horizon.Server(config.HORIZON_URL);
@@ -51,21 +116,29 @@ const createApp = (overrides = {}) => {
   const walletProvider = overrides.walletProvider || createWalletProvider({ config, horizonService, horizonServer });
 
   const app = express();
+  const securityHeaders = createSecurityHeadersMiddleware();
+  const apiContentSecurityPolicy = createApiContentSecurityPolicy();
+
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1);
 
   app.use(correlationId);
+  app.use(securityHeaders);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/docs')) {
+      return next();
+    }
 
-  const allowedOrigins = config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
+    return apiContentSecurityPolicy(req, res, next);
+  });
+
+  app.use(createCorsOriginGuard(allowedOrigins));
   app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (config.ALLOWED_ORIGINS === '*') return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: allowedOrigins,
+    credentials: true,
+  }));
+  app.options('*', cors({
+    origin: allowedOrigins,
     credentials: true,
   }));
 
@@ -86,4 +159,10 @@ const createApp = (overrides = {}) => {
   return app;
 };
 
-module.exports = { createApp };
+module.exports = {
+  createApp,
+  createCorsOriginGuard,
+  createApiContentSecurityPolicy,
+  createSecurityHeadersMiddleware,
+  parseAllowedOrigins,
+};
