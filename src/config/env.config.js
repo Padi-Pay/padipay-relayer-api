@@ -12,7 +12,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters'),
   GOOGLE_CLIENT_ID: z.string().min(1, 'Google Client ID is required'),
-  ALLOWED_ORIGINS: z.string().default('*'),
+  ALLOWED_ORIGINS: z.string()
+    .min(1, 'ALLOWED_ORIGINS must include at least one origin')
+    .refine((value) => {
+      const origins = value.split(',').map((origin) => origin.trim()).filter(Boolean);
+      return origins.length > 0 && !origins.includes('*');
+    }, 'ALLOWED_ORIGINS must be a comma-separated list of specific origins'),
 });
 
 const loadConfig = () => {

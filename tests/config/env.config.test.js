@@ -22,7 +22,7 @@ describe('Environment Configuration', () => {
     process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
     process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
     process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
-    process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
+    process.env.ALLOWED_ORIGINS = 'http://localhost:3000,http://127.0.0.1:3000';
     delete process.env.PORT;
 
     const config = loadConfig();
@@ -78,5 +78,20 @@ describe('Environment Configuration', () => {
 
     expect(() => loadConfig()).toThrow(ConfigError);
     expect(() => loadConfig()).toThrow('JWT secret must be at least 32 characters');
+  });
+
+  it('should throw ConfigError when ALLOWED_ORIGINS uses a wildcard', () => {
+    process.env.RPC_URL = 'https://rpc-testnet.stellar.org';
+    process.env.HORIZON_URL = 'https://horizon-testnet.stellar.org';
+    process.env.NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
+    process.env.CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2QD';
+    process.env.FEE_BUMP_SECRET_KEY = 'SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABUQQQ';
+    process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/mydb';
+    process.env.JWT_SECRET = 'super-secret-key-that-is-at-least-32-chars-long!';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+    process.env.ALLOWED_ORIGINS = '*';
+
+    expect(() => loadConfig()).toThrow(ConfigError);
+    expect(() => loadConfig()).toThrow('ALLOWED_ORIGINS must be a comma-separated list of specific origins');
   });
 });

@@ -116,7 +116,7 @@ process.env.FEE_BUMP_SECRET_KEY = mockKeypair.secret();
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/padipay_e2e_test';
 process.env.JWT_SECRET = JWT_SECRET;
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
-process.env.ALLOWED_ORIGINS = '*';
+process.env.ALLOWED_ORIGINS = 'http://localhost:3000,http://127.0.0.1:3000';
 
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
@@ -147,7 +147,7 @@ jest.mock('../../src/config/env.config', () => ({
     DATABASE_URL: 'postgresql://test:test@localhost:5432/padipay_e2e_test',
     JWT_SECRET,
     GOOGLE_CLIENT_ID: 'test-google-client-id.apps.googleusercontent.com',
-    ALLOWED_ORIGINS: '*',
+    ALLOWED_ORIGINS: 'http://localhost:3000,http://127.0.0.1:3000',
   }),
 }));
 
