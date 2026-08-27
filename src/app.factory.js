@@ -8,7 +8,7 @@ const { loadConfig } = require('./config/env.config');
 const express = require('express');
 const cors = require('cors');
 const { createRelayerRoutes } = require('./routes/relayer.routes');
-const healthRoutes = require('./routes/health.routes');
+const { createHealthRoutes } = require('./routes/health.routes');
 const errorHandler = require('./middleware/error.middleware');
 const { authenticate } = require('./middleware/auth.middleware');
 const { correlationId } = require('./middleware/correlation-id.middleware');
@@ -33,14 +33,15 @@ const { createAuditLogger } = require('./services/audit-logger.service');
 
 const createApp = (overrides = {}) => {
   const config = overrides.config || loadConfig();
+  const appPrisma = overrides.prisma || prisma;
 
   const server = overrides.server || new StellarSdk.rpc.Server(config.RPC_URL);
   const horizonServer = overrides.horizonServer || new StellarSdk.Horizon.Server(config.HORIZON_URL);
   const contract = overrides.contract || new StellarSdk.Contract(config.CONTRACT_ID);
 
-  const walletRepository = overrides.walletRepository || new WalletRepository(prisma);
-  const escrowRepository = overrides.escrowRepository || createEscrowRepository({ prisma });
-  const transactionRepository = overrides.transactionRepository || createTransactionRepository({ prisma });
+  const walletRepository = overrides.walletRepository || new WalletRepository(appPrisma);
+  const escrowRepository = overrides.escrowRepository || createEscrowRepository({ prisma: appPrisma });
+  const transactionRepository = overrides.transactionRepository || createTransactionRepository({ prisma: appPrisma });
 
   const auditLogger = overrides.auditLogger || createAuditLogger();
 
@@ -73,6 +74,7 @@ const createApp = (overrides = {}) => {
 
   const relayerRoutes = createRelayerRoutes({ escrowService, horizonService, stellarService });
   const walletsRoutes = createWalletsRoutes({ walletProvider, walletRepository, auditLogger });
+  const healthRoutes = createHealthRoutes({ prisma: appPrisma, server });
 
   app.use('/health', healthRoutes);
   app.use('/api/auth', authRoutes);
