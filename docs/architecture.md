@@ -6,7 +6,7 @@ The relayer abstracts blockchain complexity by constructing, sponsoring, and sub
 
 > **Note**
 >
-> This document reflects the current **v0.1.0 MVP**. Features planned for future milestones are documented separately to distinguish implemented functionality from the long-term vision.
+> This document reflects the current implementation, including the Phase 2 contract state model. Historical MVP notes remain where they are still useful, but the contract semantics below match the Rust codebase.
 
 
 
@@ -138,6 +138,103 @@ Return API Response
 ```
 
 The relayer does not execute escrow logic itself. It simply coordinates communication between clients and the blockchain.
+
+
+
+# Phase 2 State Model
+
+Phase 2 adds governance, timeout control, and protocol-fee accounting to the shared escrow model. The state model is no longer just "create, release, refund"; it now includes an explicit admin role, a timed atomic-transition context, and fee deductions that are calculated at release time.
+
+## Escrow Status
+
+The shared escrow state machine remains intentionally small and explicit:
+
+* `Pending -> Active`
+* `Active -> Released`
+* `Active -> Disputed`
+* `Disputed -> Resolved`
+* `Disputed -> Refunded`
+* `Active -> Refunded`
+* `Pending -> Refunded`
+
+The contract stores the canonical escrow record in `EscrowRecord` / `Escrow`. Phase 2 keeps the escrow fields for:
+
+* `status`
+* `platform_fee`
+* `net_amount`
+* `session_end_time`
+* `auto_release_delay`
+* `usd_amount`
+* `quoted_token_amount`
+* `send_asset`
+* `dest_asset`
+* `total_sessions`
+* `sessions_completed`
+
+There is no standalone `timeout_ledger` field in the escrow record. The timeout behavior is split into two distinct mechanisms:
+
+* `EscrowRecord.session_end_time + auto_release_delay` governs when permissionless auto-release may start.
+* `StateTransitionContext.timeout_at` governs atomic state-transition locks and is stored under `DataKey::StateTransitionContext(escrow_id)` together with `DataKey::StateTransitionLock(escrow_id)`.
+
+The atomic transition timeout is ledger-based, not business-state-based:
+
+* `timeout_at = now + STATE_TRANSITION_TIMEOUT_SECS`
+* `STATE_TRANSITION_TIMEOUT_SECS = 5 * 60` seconds
+
+This means the escrow record describes the business event timeline, while the transition context protects concurrent state changes during execution.
+
+## Admin Role
+
+`DataKey::Admin` stores the active admin address and is initialized once during contract setup. The stored admin can:
+
+* Update the platform fee with `update_fee`
+* Update the treasury with `update_treasury`
+* Approve or reject tokens with `set_approved_token`
+* Configure the fee schedule with `set_fee_schedule`
+* Configure the staking, reputation, insurance, and interface-registry links
+* Configure the liquidity pool and dynamic fee toggle
+* Force-release an active escrow with `admin_release`
+* Force-refund an escrow where the contract permits admin intervention
+* Propose and accept admin rotation through `propose_admin_change` and `accept_admin_role`
+* Grant a time-bound emergency-admin role
+
+The admin cannot:
+
+* Bypass the stored-auth checks on admin-gated methods
+* Raise the flat fee above `MAX_FEE_BPS` (`1_000` bps, or 10%)
+* Skip the admin rotation timelock (`MIN_ADMIN_TIMELOCK_SECS`)
+* Skip the admin cooling-off window (`ADMIN_COOLING_OFF_SECS`)
+* Execute emergency release alone
+* Replace the multisig-backed emergency path with a direct admin call
+
+Emergency power is deliberately split away from the normal admin key:
+
+* `revoke_admin_emergency` can only be called by the configured `DataKey::MultisigAdmin` contract.
+* `emergency_release` still requires the emergency multisig flow to pass, plus an active emergency-admin role scoped to `emergency_release`.
+
+That separation is the main guardrail against over-centralized administrative power.
+
+## Protocol Fee Formula
+
+On each release, the protocol fee is derived from the amount being released in that step:
+
+```text
+platform_fee = floor(release_amount * fee_bps / 10_000)
+net_amount = release_amount - platform_fee
+```
+
+The fee is deducted before the mentor payout is transferred:
+
+* `platform_fee` is sent to `Treasury`
+* `net_amount` is sent to the mentor
+
+Important constraints:
+
+* The flat fee rate is capped at `1_000` bps.
+* If a `FeeSchedule` is present, graduated pricing overrides the flat `FeeBps` value.
+* The division is integer-based, so the result is truncated toward zero rather than rounded up.
+
+This keeps the fee logic deterministic and auditable on-chain.
 
 
 
@@ -320,5 +417,5 @@ For detailed information on how this architecture works, please see our document
 
 
 - [Database Schema and ERD](./database-schema.md)
-- [Setup Guide](./docs/setup-guide.md)
-- [Contributing Guidelines](./docs/contributing.md)
+- [Setup Guide](./setup-guide.md)
+- [Contributing Guidelines](./contributing.md)
