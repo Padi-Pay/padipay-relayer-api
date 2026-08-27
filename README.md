@@ -181,6 +181,11 @@ Run the container, passing the `.env` file:
 docker run -p 3000:3000 --env-file .env padipay-relayer-api
 ```
 
+The image is built with a multi-stage `Dockerfile` that ships only production
+dependencies and runs the Node process as the unprivileged `node` user. A
+`HEALTHCHECK` polls `/health`, and container start runs `prisma db push` to
+sync the schema before the API boots.
+
 ## Environment Variables
 
 Typical configuration includes:
