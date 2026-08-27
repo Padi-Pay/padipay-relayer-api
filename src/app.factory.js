@@ -97,6 +97,7 @@ const createApiContentSecurityPolicy = () => helmet.contentSecurityPolicy({
 
 const createApp = (overrides = {}) => {
   const config = overrides.config || loadConfig();
+  const appPrisma = overrides.prisma || prisma;
   const allowedOrigins = parseAllowedOrigins(config.ALLOWED_ORIGINS);
 
   const server = overrides.server || new StellarSdk.rpc.Server(config.RPC_URL);
