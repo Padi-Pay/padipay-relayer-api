@@ -26,7 +26,9 @@ jest.mock('../../src/routes/health.routes', () => {
     });
   });
 
-  return router;
+  return {
+    createHealthRoutes: jest.fn(() => router),
+  };
 });
 jest.mock('../../src/routes/relayer.routes', () => ({
   createRelayerRoutes: jest.fn(() => require('express').Router()),
