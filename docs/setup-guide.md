@@ -146,6 +146,15 @@ Run the container, passing the `.env` file:
 docker run -p 3000:3000 --env-file .env padipay-relayer-api
 ```
 
+The `Dockerfile` uses a multi-stage build: a builder stage installs production
+dependencies and generates the Prisma client, and the final stage copies only
+that output plus `src/` onto a clean `node:20-alpine` base. The container runs
+as the unprivileged `node` user — verify with:
+
+```bash
+docker run --rm padipay-relayer-api whoami   # -> node
+```
+
 ---
 
 # Verify the Installation

@@ -1,13 +1,34 @@
+# Dependencies (reinstalled inside the image)
 node_modules
 npm-debug.log
-.env
-.env.*
+*.log
+
+# VCS / CI
 .git
 .gitignore
 .github
-coverage
+
+# Env files (provided at runtime via --env-file / secrets)
+.env
+.env.*
+
+# Tests & coverage
 tests
+coverage
+
+# Docs
 docs
+README.md
+
+# Local tooling / editor / agent config
+.agents
+.claude
+.windsurf
+.vscode
+eslint.config.js
+babel.config.js
+skills-lock.json
+
+# Docker
 Dockerfile
 .dockerignore
-eslint.config.js
