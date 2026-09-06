@@ -247,7 +247,8 @@ registry.registerPath({
   tags: ['Health'],
   summary: 'Check API health',
   responses: {
-    200: { description: 'API is healthy' }
+    200: { description: 'API and critical dependencies are healthy' },
+    503: { description: 'A critical dependency is unavailable' }
   }
 });
 
